@@ -20,6 +20,10 @@ macOS에서 Xcode를 설치한 뒤 `pnpm ios:sync`를 실행하고, `pnpm ios:op
 
 > **맥이 없다면** `docs/IPA-설치가이드.md` 를 보세요. GitHub Actions(무료 macOS 러너)로 IPA를 만들고
 > 윈도우에서 Sideloadly로 아이폰에 설치하는 방법을 정리해 두었습니다.
+>
+> **케이블 없이 쓰려면** `docs/SideStore-설치가이드.md` 를 보세요. `v*` 태그를 푸시하면 CI가
+> GitHub 릴리스에 IPA를 붙이고 `source/apps.json`(SideStore/AltStore 소스)을 자동으로 갱신하므로,
+> 아이폰의 SideStore에서 업데이트 버튼만 누르면 됩니다.
 
 ## 네이티브 구성 메모
 

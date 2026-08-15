@@ -8,7 +8,11 @@ on:
   workflow_dispatch: # Actions 탭에서 직접 실행
   push:
     tags:
-      - "v*" # v1.0.0 같은 태그를 푸시해도 실행
+      - "v*" # v1.0.0 같은 태그를 푸시하면 릴리스까지 자동으로 만든다
+
+# 릴리스 생성과 source/apps.json 되돌려 쓰기에 필요하다.
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -19,6 +23,21 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # 태그 빌드에서도 main 으로 되돌아가 커밋할 수 있어야 한다
+
+      # SideStore 는 설치된 앱 버전과 소스의 버전을 비교해 업데이트를 띄운다.
+      # 태그 이름을 그대로 앱 버전으로 박아야 "업데이트 있음" 이 계속 뜨지 않는다.
+      - name: 버전 결정
+        id: ver
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            V="${GITHUB_REF_NAME#v}"
+          else
+            V="0.0.$GITHUB_RUN_NUMBER"
+          fi
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          echo "앱 버전: $V"
 
       # 버전은 package.json 의 packageManager 필드에서 읽는다.
       # 여기에 version 을 또 적으면 "Multiple versions of pnpm specified" 로 실패한다.
@@ -69,6 +88,8 @@ jobs:
             -sdk iphoneos \
             -derivedDataPath build \
             -destination 'generic/platform=iOS' \
+            MARKETING_VERSION="${{ steps.ver.outputs.version }}" \
+            CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
@@ -98,3 +119,40 @@ jobs:
           path: output/*.ipa
           retention-days: 30
           if-no-files-found: error
+
+      # 여기서부터는 태그 빌드에서만 돈다.
+      # 릴리스에 IPA 를 붙이면 SideStore 가 그 주소에서 바로 받아 설치할 수 있다.
+      - name: 릴리스 생성 + IPA 첨부
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: output/WoholEnglish.ipa
+          tag_name: ${{ github.ref_name }}
+          name: 워홀 영어 훈련 ${{ github.ref_name }}
+          body: |
+            SideStore 에 아래 소스를 등록해 두면 케이블 없이 바로 설치·업데이트할 수 있습니다.
+
+            ```
+            https://raw.githubusercontent.com/${{ github.repository }}/main/source/apps.json
+            ```
+
+            설치 방법은 `docs/SideStore-설치가이드.md` 를 보세요.
+
+      # SideStore 소스가 새 버전을 가리키도록 main 에 되돌려 커밋한다.
+      - name: 소스(apps.json) 갱신
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # cap sync 가 Package.swift(추적 파일)를 다시 써서 워킹트리가 더럽다.
+          # 빌드 부산물이므로 -f 로 버리고 main 으로 옮긴다. output/ 은 untracked 라 살아남는다.
+          git fetch origin main
+          git checkout -f -B main origin/main
+          node scripts/update-source.mjs "${GITHUB_REF_NAME#v}" output/WoholEnglish.ipa
+          git add source/apps.json
+          if git diff --cached --quiet; then
+            echo "소스에 바뀐 내용이 없습니다."
+          else
+            git commit -m "chore: SideStore 소스 ${GITHUB_REF_NAME} 로 갱신"
+            git push origin main
+          fi
