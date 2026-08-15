@@ -1,5 +1,11 @@
 # 맥 없이 IPA 만들어서 아이폰에 설치하기
 
+> **✅ 1·2단계는 이미 끝나 있습니다.**
+> 코드는 <https://github.com/yunseok-map/english> 에 올라가 있고 첫 빌드도 성공했습니다.
+> 완성된 파일은 바탕화면 **`워홀영어-앱\WoholEnglish.ipa`** 에 있습니다.
+> **바로 [3단계](#3단계-아이폰에-설치하기-sideloadly)로 가서 아이폰에 설치하세요.**
+> 아래 1·2단계는 나중에 앱을 고치고 새 IPA를 만들 때 쓰는 설명입니다.
+
 윈도우만 있어도 **진짜 앱(.ipa)** 을 만들어 아이폰에 설치할 수 있습니다.
 전체 흐름은 이렇습니다.
 
@@ -18,28 +24,18 @@
 
 ## 1단계. 코드를 GitHub에 올리기 (최초 1회)
 
-### 1) GitHub에서 빈 저장소 만들기
-
-<https://github.com/new> 에서 저장소를 만듭니다.
-
-- Repository name: `working-holiday-english` (아무거나 상관없음)
-- **Private 로 만드세요** (API 키 관련 파일은 이미 제외해 뒀지만 안전하게)
-- README, .gitignore 등은 **체크하지 마세요** (이미 있습니다)
-
-### 2) 내 PC에서 푸시
-
-**로컬 git 저장소는 이미 만들어 두었고 첫 커밋도 되어 있습니다.** 주소만 연결해서 올리면 됩니다.
-프로젝트 폴더에서 터미널을 열고 (아래 `<주소>` 는 방금 만든 저장소 주소로 바꾸세요):
+저장소는 <https://github.com/yunseok-map/english> 로 이미 연결돼 있습니다.
+앱을 고친 뒤에는 프로젝트 폴더에서 이 세 줄만 실행하면 됩니다.
 
 ```bash
-git remote add origin <주소>
-git push -u origin main
+git add -A
+git commit -m "수정 내용"
+git push
 ```
 
-로그인 창이 뜨면 GitHub 계정으로 로그인하세요.
-
-> 저장소 주소는 GitHub 저장소 페이지의 초록색 **Code** 버튼 → HTTPS 탭에서 복사할 수 있습니다.
-> (`https://github.com/내아이디/working-holiday-english.git` 형태)
+> 지금 이 저장소는 **공개(Public)** 상태입니다. 그래서 GitHub Actions 빌드 시간이 무제한 무료입니다.
+> 비공개로 바꾸고 싶으면 저장소 **Settings → General → 맨 아래 Change repository visibility** 에서 바꿀 수 있습니다.
+> (비공개로 바꾸면 macOS 빌드가 월 200분 정도로 제한됩니다. 한 번 빌드에 6~8분이니 월 25회쯤 됩니다.)
 
 ---
 
@@ -53,12 +49,8 @@ git push -u origin main
    **`wohol-english-ipa`** 를 다운로드 → 압축을 풀면 **`WoholEnglish.ipa`** 가 나옵니다
    (앱 이름은 아이폰에서 "워홀 영어 훈련"으로 표시됩니다)
 
-> 앱 내용을 수정한 뒤에는 `git add -A`, `git commit -m "수정"`, `git push` 를 차례로 실행하고
-> 이 2단계를 다시 돌리면 새 IPA가 나옵니다.
-
-**무료 사용량**: 비공개 저장소 기준 월 2,000분이 무료이고 macOS 빌드는 10배로 계산되어
-실질 월 200분입니다. 한 번 빌드에 약 6~8분이니 **월 25회 정도는 무료**입니다.
-공개(Public) 저장소로 만들면 무제한 무료입니다.
+> 태그를 밀어도 자동으로 빌드됩니다: `git tag v1.0.2` → `git push origin v1.0.2`
+> 버튼을 누르러 갈 필요가 없어서 이 쪽이 더 편합니다.
 
 ---
 
@@ -74,7 +66,7 @@ git push -u origin main
 
 1. Sideloadly 실행 → 아이폰을 USB로 연결 → 아이폰에서 **"이 컴퓨터를 신뢰"** 를 누릅니다
 2. Sideloadly 창에서:
-   - **IPA 파일**: 다운로드한 `WoholEnglish.ipa` 를 드래그 앤 드롭
+   - **IPA 파일**: 바탕화면 `워홀영어-앱\WoholEnglish.ipa` 를 드래그 앤 드롭
    - **Apple ID**: 본인 Apple ID 입력 (무료 계정 OK)
 3. **Start** 클릭 → Apple ID 비밀번호 입력
    - 2단계 인증을 쓰면 **앱 암호**가 필요할 수 있습니다.
@@ -113,8 +105,8 @@ PC의 AltServer가 같은 Wi-Fi에 있으면 **백그라운드에서 자동으�
 
 - 앱 이름: **워홀 영어 훈련**
 - 번들 ID: `com.yunseok.woholenglish`
-- 아이콘/스플래시를 바꾸려면 `assets/logo.svg` 를 수정하고 `pnpm icons` 를 실행한 뒤
-  생성된 이미지를 `ios/App/App/Assets.xcassets` 에 복사하고 다시 푸시하세요.
+- 아이콘/스플래시를 바꾸려면 `assets/logo.svg` 를 고치고 `pnpm icons` 만 실행하면 됩니다.
+  PWA 아이콘과 iOS 에셋 카탈로그까지 한 번에 다시 만들어집니다. 그다음 커밋·푸시하세요.
 
 ---
 
@@ -122,7 +114,7 @@ PC의 AltServer가 같은 Wi-Fi에 있으면 **백그라운드에서 자동으�
 
 | 증상 | 해결 |
 | --- | --- |
-| Actions 빌드가 빨간 X | 실패한 단계를 눌러 로그를 보세요. 대부분 `pnpm install` 단계이며, `pnpm install` 을 로컬에서 다시 돌리고 `pnpm-lock.yaml` 을 커밋하면 해결됩니다. |
+| Actions 빌드가 빨간 X | 실패한 단계를 눌러 로그를 보세요. `의존성 설치` 에서 막혔다면 로컬에서 `pnpm install` 을 다시 돌리고 `pnpm-lock.yaml` 을 커밋하면 됩니다. `서명 없이 앱 빌드` 에서 Swift 관련 에러(`has no member ...`)가 잔뜩 나오면 러너의 Xcode가 낮은 것이니 워크플로의 `runs-on` 을 더 최신 macOS 이미지로 올리세요. |
 | Sideloadly에서 "Provisioning profile" 오류 | 무료 계정은 앱 3개 제한입니다. 다른 사이드로드 앱을 지우고 다시 시도하세요. |
 | 설치는 됐는데 앱이 안 열림 | 위의 **개발자 신뢰 설정**을 하지 않은 경우입니다. |
 | 며칠 뒤 앱이 안 열림 | 7일 서명 만료입니다. 같은 IPA로 재설치하세요. |
