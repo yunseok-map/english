@@ -28,18 +28,18 @@
 
 ### 2) 내 PC에서 푸시
 
+**로컬 git 저장소는 이미 만들어 두었고 첫 커밋도 되어 있습니다.** 주소만 연결해서 올리면 됩니다.
 프로젝트 폴더에서 터미널을 열고 (아래 `<주소>` 는 방금 만든 저장소 주소로 바꾸세요):
 
 ```bash
-git init
-git add .
-git commit -m "워홀 영어 훈련 앱"
-git branch -M main
 git remote add origin <주소>
 git push -u origin main
 ```
 
-> `git` 이 없다면 <https://git-scm.com/download/win> 에서 설치하세요.
+로그인 창이 뜨면 GitHub 계정으로 로그인하세요.
+
+> 저장소 주소는 GitHub 저장소 페이지의 초록색 **Code** 버튼 → HTTPS 탭에서 복사할 수 있습니다.
+> (`https://github.com/내아이디/working-holiday-english.git` 형태)
 
 ---
 
@@ -53,8 +53,8 @@ git push -u origin main
    **`wohol-english-ipa`** 를 다운로드 → 압축을 풀면 **`WoholEnglish.ipa`** 가 나옵니다
    (앱 이름은 아이폰에서 "워홀 영어 훈련"으로 표시됩니다)
 
-> 앱 내용을 수정할 때마다 1단계의 `git add . && git commit -m "수정" && git push` 를 한 뒤
-> 이 2단계를 다시 실행하면 새 IPA가 나옵니다.
+> 앱 내용을 수정한 뒤에는 `git add -A`, `git commit -m "수정"`, `git push` 를 차례로 실행하고
+> 이 2단계를 다시 돌리면 새 IPA가 나옵니다.
 
 **무료 사용량**: 비공개 저장소 기준 월 2,000분이 무료이고 macOS 빌드는 10배로 계산되어
 실질 월 200분입니다. 한 번 빌드에 약 6~8분이니 **월 25회 정도는 무료**입니다.

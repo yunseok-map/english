@@ -41,10 +41,9 @@ jobs:
       - name: SPM 경로 정규화
         run: |
           PKG="ios/App/CapApp-SPM/Package.swift"
-          if grep -q '\\\\' "$PKG"; then
-            echo "역슬래시 경로를 정규화합니다."
-            perl -i -pe 's{\\\\}{/}g' "$PKG"
-          fi
+          # \x5c 는 역슬래시. 이스케이프 지옥을 피하려고 코드포인트로 적었다.
+          # 역슬래시가 없으면 아무 일도 일어나지 않으므로 조건 없이 실행한다.
+          perl -i -pe 's{\x5c}{/}g' "$PKG"
           cat "$PKG"
 
       - name: Xcode 버전 확인
