@@ -1,0 +1,17 @@
+{
+  "name": "워홀 영어 훈련",
+  "short_name": "워홀 영어",
+  "description": "레벨 테스트로 내 수준을 확인하고, 워킹홀리데이 현장 영어를 매일 훈련하는 오프라인 학습 앱",
+  "lang": "ko",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f6f7f5",
+  "theme_color": "#f6f7f5",
+  "icons": [
+    { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

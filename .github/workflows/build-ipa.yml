@@ -1,0 +1,91 @@
+name: iOS IPA 빌드
+
+# 맥 없이 아이폰 설치용 IPA를 만든다.
+# GitHub의 무료 macOS 러너에서 빌드하고, 결과물(IPA)을 Artifacts 로 내려받는다.
+# 서명은 하지 않는다 — 윈도우의 Sideloadly/AltStore 가 본인 Apple ID로 서명해서 설치한다.
+
+on:
+  workflow_dispatch: # Actions 탭에서 직접 실행
+  push:
+    tags:
+      - "v*" # v1.0.0 같은 태그를 푸시해도 실행
+
+jobs:
+  build:
+    runs-on: macos-14
+    timeout-minutes: 40
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # 버전은 package.json 의 packageManager 필드에서 읽는다.
+      # 여기에 version 을 또 적으면 "Multiple versions of pnpm specified" 로 실패한다.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: 의존성 설치
+        run: pnpm install --frozen-lockfile
+
+      - name: 웹 앱 빌드
+        run: pnpm exec vite build
+
+      - name: iOS 프로젝트에 동기화
+        run: pnpm exec cap sync ios
+
+      # Windows 에서 cap sync 를 돌리면 Package.swift 에 역슬래시 경로가 들어간다.
+      # macOS 에서 재생성되지만, 혹시 남아 있으면 여기서 정규화한다.
+      - name: SPM 경로 정규화
+        run: |
+          PKG="ios/App/CapApp-SPM/Package.swift"
+          if grep -q '\\\\' "$PKG"; then
+            echo "역슬래시 경로를 정규화합니다."
+            perl -i -pe 's{\\\\}{/}g' "$PKG"
+          fi
+          cat "$PKG"
+
+      - name: Xcode 버전 확인
+        run: xcodebuild -version
+
+      - name: 서명 없이 앱 빌드
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            -destination 'generic/platform=iOS' \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_ENTITLEMENTS="" \
+            build
+
+      - name: IPA 로 포장
+        run: |
+          APP_PATH="build/Build/Products/Release-iphoneos/App.app"
+          if [ ! -d "$APP_PATH" ]; then
+            echo "빌드 결과물을 찾지 못했습니다: $APP_PATH"
+            find build -name "*.app" -maxdepth 6 || true
+            exit 1
+          fi
+          mkdir -p output/Payload
+          cp -R "$APP_PATH" output/Payload/
+          cd output
+          # 파일명은 ASCII 로 둔다. 한글 파일명은 윈도우에서 압축을 풀 때 깨질 수 있다.
+          zip -qry "WoholEnglish.ipa" Payload
+          rm -rf Payload
+          ls -lh
+
+      - name: IPA 업로드
+        uses: actions/upload-artifact@v4
+        with:
+          name: wohol-english-ipa
+          path: output/*.ipa
+          retention-days: 30
+          if-no-files-found: error
