@@ -12,7 +12,9 @@ on:
 
 jobs:
   build:
-    runs-on: macos-14
+    # Capacitor 8 의 Swift 모듈은 Xcode 16 이상에서만 읽힌다.
+    # macos-14(Xcode 15.4)에서는 플러그인 API가 통째로 안 보여 빌드가 깨진다.
+    runs-on: macos-15
     timeout-minutes: 40
 
     steps:
@@ -46,8 +48,16 @@ jobs:
           perl -i -pe 's{\x5c}{/}g' "$PKG"
           cat "$PKG"
 
-      - name: Xcode 버전 확인
-        run: xcodebuild -version
+      # 러너 이미지에 여러 Xcode 가 깔려 있고 기본값이 최신이 아닐 수 있다.
+      # 설치된 것 중 가장 높은 버전을 명시적으로 고른다.
+      - name: Xcode 최신 버전 선택
+        run: |
+          ls -d /Applications/Xcode*.app
+          LATEST=$(ls -d /Applications/Xcode*.app | sort -V | tail -1)
+          echo "선택한 Xcode: $LATEST"
+          sudo xcode-select -s "$LATEST/Contents/Developer"
+          xcodebuild -version
+          swift --version
 
       - name: 서명 없이 앱 빌드
         run: |
