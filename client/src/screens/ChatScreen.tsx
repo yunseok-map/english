@@ -1,5 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { LockKeyhole, Mic, RotateCcw, Send, Volume2 } from "lucide-react";
+import {
+  LockKeyhole,
+  Mic,
+  Radio,
+  RotateCcw,
+  Send,
+  Volume2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,11 +15,13 @@ import { Panel, Eyebrow } from "@/components/Panel";
 import { useApp } from "@/state/context";
 import { displayContractions, recordStudy } from "@/lib/engine";
 import {
+  buildLiveInstruction,
   llmUsage,
   requestPartnerReply,
   takeLlmError,
   type ChatMode,
 } from "@/lib/providers";
+import { LiveVoicePanel, canLiveVoice } from "@/components/LiveVoicePanel";
 import { checkGrammar, summarizeIssues } from "@/lib/grammarCheck";
 import { scenarioById, scenariosFor } from "@/lib/scenarios";
 import { localChatReply } from "@/lib/localChat";
@@ -44,6 +53,7 @@ export function ChatScreen() {
   const [voice, setVoice] = useState(false);
   const [sending, setSending] = useState(false);
   const [listening, setListening] = useState(false);
+  const [liveOpen, setLiveOpen] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
 
   const usage = llmUsage(app.stats, app.settings.monthlyLimit);
@@ -68,6 +78,7 @@ export function ChatScreen() {
 
   /** 대화를 비우고 새로 시작한다. */
   const reset = (nextMode = mode, nextScenario = scenarioId) => {
+    setLiveOpen(false);
     update(state => ({ ...state, chat: [] }));
     setMode(nextMode);
     setScenarioId(nextScenario);
@@ -77,6 +88,92 @@ export function ChatScreen() {
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [app.chat.length]);
+
+  // 실시간 음성은 Gemini 키가 있을 때만. 세션 하나를 대화 1회로 센다.
+  const liveReady =
+    app.settings.llmProvider === "gemini" &&
+    Boolean(app.settings.llmKey) &&
+    canLiveVoice();
+
+  const openLive = () => {
+    if (usage.blocked) {
+      toast.error(
+        `이번 달 AI 대화 한도(${usage.limit}회)를 모두 사용했어요. 설정에서 한도를 조정할 수 있어요.`
+      );
+      return;
+    }
+    setLiveOpen(true);
+  };
+
+  // 마이크를 거부하거나 키가 틀려서 연결이 안 되면 사용량을 쓰지 않은 것이다.
+  // 실제로 대화가 시작됐을 때만 1회로 센다.
+  const countLiveSession = () => {
+    update(state => {
+      const sameMonth = state.stats.llmMonth === monthKey();
+      return {
+        ...state,
+        stats: recordStudy(state.stats, {
+          llmCalls: (sameMonth ? state.stats.llmCalls : 0) + 1,
+          llmMonth: monthKey(),
+        }),
+      };
+    });
+  };
+
+  /** 음성으로 주고받은 한 턴을 대화 기록과 오답노트에 남긴다. */
+  const recordLiveTurn = (me: string, partner: string) => {
+    const issues = me ? checkGrammar(me) : [];
+    const shown =
+      app.settings.correctionLevel === "all"
+        ? issues
+        : issues.filter(i => i.severity === "high");
+    const stamp = Date.now();
+    update(state => ({
+      ...state,
+      chat: [
+        ...state.chat,
+        ...(me
+          ? [
+              {
+                id: `live-me-${stamp}`,
+                role: "user" as const,
+                text: me,
+                correction:
+                  app.settings.correctionLevel === "after"
+                    ? undefined
+                    : summarizeIssues(shown),
+                createdAt: stamp,
+              },
+            ]
+          : []),
+        ...(partner
+          ? [
+              {
+                id: `live-ai-${stamp + 1}`,
+                role: "assistant" as const,
+                text: partner,
+                createdAt: stamp + 1,
+              },
+            ]
+          : []),
+      ].slice(-60),
+      mistakes: issues
+        .filter(i => i.severity === "high" && i.id !== "korean")
+        .reduce(
+          (acc, issue) =>
+            noteMistake(
+              { ...state, mistakes: acc },
+              {
+                id: `grammar-chat-${issue.id}`,
+                type: "grammar",
+                label: issue.message,
+                answer: issue.fixed ?? me,
+              }
+            ),
+          state.mistakes
+        ),
+    }));
+  };
 
   const send = async () => {
     const text = input.trim();
@@ -306,6 +403,38 @@ export function ChatScreen() {
           </div>
         </Panel>
       )}
+
+      {liveReady &&
+        (liveOpen ? (
+          <LiveVoicePanel
+            apiKey={app.settings.llmKey}
+            instruction={buildLiveInstruction(
+              app.profile.level,
+              mode,
+              app.settings.dialect,
+              scenario?.role
+            )}
+            onTurn={recordLiveTurn}
+            onConnected={countLiveSession}
+            onClose={() => setLiveOpen(false)}
+          />
+        ) : (
+          <button
+            onClick={openLive}
+            className="flex w-full items-center gap-3 rounded-2xl border border-primary/30 bg-accent/40 p-3.5 text-left transition-colors hover:border-primary"
+          >
+            <Radio size={18} className="shrink-0 text-primary" />
+            <span className="min-w-0 flex-1">
+              <span className="block text-[0.9375rem] font-semibold">
+                실시간 음성으로 말해보기
+              </span>
+              <span className="block text-[0.8125rem] leading-relaxed text-muted-foreground">
+                타이핑 없이 바로 말하고 바로 답을 들어요.
+                {mode === "role" && scenario ? ` (${scenario.label})` : ""}
+              </span>
+            </span>
+          </button>
+        ))}
 
       {usesLlm && (
         <p className="text-right font-mono text-[0.75rem] text-muted-foreground">

@@ -48,21 +48,29 @@ const myMemory: TranslationProvider = {
     return out;
   },
 };
+/**
+ * DeepL 은 응답에 Access-Control-Allow-Origin 을 주지 않는다.
+ * Authorization 헤더 때문에 프리플라이트가 먼저 나가는데 거기서 막히므로
+ * 브라우저 fetch 로는 아예 못 부른다. 앱에서는 postJson 이 네이티브로 보낸다.
+ */
 const deepl: TranslationProvider = {
   id: "deepl",
   translate: async (text, key, dialect) => {
-    const response = await fetch("https://api-free.deepl.com/v2/translate", {
-      method: "POST",
-      headers: {
-        Authorization: `DeepL-Auth-Key ${key}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams({
+    // 무료 키는 :fx 로 끝나고 api-free 도메인을, 유료 키는 api 도메인을 쓴다.
+    const trimmed = key.trim();
+    const host = trimmed.endsWith(":fx")
+      ? "https://api-free.deepl.com"
+      : "https://api.deepl.com";
+    const data = (await postJson(
+      `${host}/v2/translate`,
+      { Authorization: `DeepL-Auth-Key ${trimmed}` },
+      {
         text,
+        source_lang: "KO",
         target_lang: dialect === "au" ? "EN-GB" : "EN-US",
-      }),
-    });
-    const data = await response.json();
+      },
+      true
+    )) as { translations?: Array<{ text?: string }> } | null;
     return (
       data?.translations?.[0]?.text || (await fallbackTranslate(text, dialect))
     );
@@ -95,16 +103,16 @@ const papago: TranslationProvider = {
   id: "papago",
   translate: async (text, key, dialect) => {
     const [id, secret] = key.split(":");
-    const response = await fetch("https://openapi.naver.com/v1/papago/n2mt", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        "X-Naver-Client-Id": id || "",
-        "X-Naver-Client-Secret": secret || "",
+    // Papago 도 CORS 를 열어 두지 않아 앱(네이티브 요청)에서만 동작한다.
+    const data = (await postJson(
+      "https://openapi.naver.com/v1/papago/n2mt",
+      {
+        "X-Naver-Client-Id": id?.trim() || "",
+        "X-Naver-Client-Secret": secret?.trim() || "",
       },
-      body: new URLSearchParams({ source: "ko", target: "en", text }),
-    });
-    const data = await response.json();
+      { source: "ko", target: "en", text },
+      true
+    )) as { message?: { result?: { translatedText?: string } } } | null;
     return (
       data?.message?.result?.translatedText ||
       (await fallbackTranslate(text, dialect))
@@ -288,6 +296,36 @@ function buildInstruction(
     "Use short 1-2 sentence replies. Never repeat your previous question. If the learner writes Korean, first give a simple English phrase they could have used.",
     `Correction policy: ${settings.correctionLevel}. Put grammar feedback in "correction" written in Korean, and leave it null when the sentence is fine.`,
     'Respond with JSON only: {"reply": string, "correction": string | null, "hint": string | null, "words": string[]}.',
+  ].join(" ");
+}
+
+/**
+ * 실시간 음성 대화용 지시문.
+ *
+ * 텍스트 대화는 JSON 으로 받아 교정·힌트를 따로 쓰지만, 음성은 말한 게 전부다.
+ * JSON 을 요구하면 모델이 중괄호를 소리 내어 읽는다. 대신 말로 짧게 받고,
+ * 고칠 게 있으면 대화 흐름 안에서 자연스럽게 되짚어 달라고 시킨다.
+ */
+export function buildLiveInstruction(
+  level: Level,
+  mode: ChatMode,
+  dialect: Dialect,
+  scenarioRole?: string
+) {
+  const modeClause =
+    mode === "role" && scenarioRole
+      ? `You are ${scenarioRole}. Stay in character and move the situation forward one step at a time, then wrap up naturally when it is done.`
+      : mode === "journal"
+        ? "Ask about the learner's day, one question at a time, and react warmly to what they say."
+        : "Keep a friendly, everyday conversation going with short follow-up questions.";
+  return [
+    `You are a patient English speaking partner for a Korean ${level}-level learner on a working holiday.`,
+    llmDialectClause(dialect),
+    modeClause,
+    "Speak slowly and clearly, in one or two short sentences. Wait for the learner to finish before you answer.",
+    'If they make a mistake that changes the meaning, repeat their sentence back correctly as a natural confirmation ("Ah, you went to the cafe yesterday?") instead of stopping to explain grammar.',
+    "If they go quiet or get stuck, offer a simple phrase they could say next.",
+    "Never read out punctuation, JSON, or formatting. Just talk.",
   ].join(" ");
 }
 
