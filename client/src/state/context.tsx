@@ -50,12 +50,22 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     let cancelled = false;
     void (async () => {
       const state = await loadState();
-      await ensureLevels([state.profile.level]);
+      // 데이터 청크 로드가 실패해도(네트워크·캐시 문제) 화면은 띄운다.
+      // 여기서 막히면 사용자는 원인을 알 수 없는 흰 화면만 보게 된다.
+      try {
+        await ensureLevels([state.profile.level]);
+      } catch (error) {
+        console.error("학습 데이터 로드 실패", error);
+      }
       if (cancelled) return;
       setApp(state);
       setReady(true);
       void hideSplash();
-      prefetchRemainingLevels();
+      try {
+        prefetchRemainingLevels();
+      } catch {
+        /* 프리페치 실패는 화면 표시와 무관하다. */
+      }
     })();
     return () => {
       cancelled = true;

@@ -1,4 +1,4 @@
-import { Suspense, lazy, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { Toaster } from "sonner";
 import { useApp } from "@/state/context";
 import { AppHeader } from "@/components/AppHeader";
@@ -55,6 +55,11 @@ export default function App() {
   const [learnSection, setLearnSection] = useState<LearnSection>("words");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [retest, setRetest] = useState(false);
+
+  // 첫 커밋이 끝났다 = 흰 화면은 아니다. index.html 의 감시자를 해제한다.
+  useEffect(() => {
+    window.__bootOk = true;
+  }, []);
 
   const openLearn = (section: LearnSection) => {
     setLearnSection(section);

@@ -12,6 +12,107 @@
     <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
     <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png" />
     <title>워홀 영어 훈련</title>
+    <!--
+      부팅 감시자.
+
+      네이티브 앱(WKWebView)에서는 콘솔을 볼 수 없다. 모듈 스크립트가 아예
+      로드되지 않거나 평가 중에 터지면 화면이 흰색으로 남고 원인을 알 길이 없다.
+      그래서 모듈이 아닌 고전 스크립트로 먼저 걸어 두고, 오류나 정지를 화면에 찍는다.
+      ES5 문법만 쓴다. (이 스크립트 자체가 파싱 실패하면 아무 의미가 없다)
+    -->
+    <script>
+      (function () {
+        var reported = false;
+        function show(title, detail) {
+          // 앱이 이미 그려진 뒤라면 덮지 않는다. 화면이 뜬 다음의 사소한 오류까지
+          // 전체 화면으로 막아 버리면 멀쩡한 앱을 못 쓰게 된다.
+          if (reported || window.__bootOk) return;
+          reported = true;
+          var root = document.getElementById("root");
+          if (!root) return;
+          root.innerHTML = "";
+          var box = document.createElement("div");
+          box.setAttribute(
+            "style",
+            "position:fixed;inset:0;overflow:auto;padding:24px 18px;" +
+              "background:#101817;color:#e8eceb;font:14px/1.6 -apple-system,BlinkMacSystemFont,sans-serif;" +
+              "-webkit-text-size-adjust:100%;z-index:2147483647;"
+          );
+          var h = document.createElement("div");
+          h.setAttribute(
+            "style",
+            "font-size:17px;font-weight:700;margin:32px 0 12px;color:#7fd1c1;"
+          );
+          h.appendChild(document.createTextNode(title));
+          var p = document.createElement("pre");
+          p.setAttribute(
+            "style",
+            "white-space:pre-wrap;word-break:break-all;margin:0;" +
+              "font:12px/1.5 ui-monospace,Menlo,monospace;color:#cfd8d5;"
+          );
+          p.appendChild(
+            document.createTextNode(
+              detail +
+                "\n\n---\niOS: " +
+                navigator.userAgent +
+                "\n화면: " +
+                window.innerWidth +
+                "x" +
+                window.innerHeight
+            )
+          );
+          var hint = document.createElement("div");
+          hint.setAttribute(
+            "style",
+            "margin-top:18px;color:#8fa39e;font-size:12px;"
+          );
+          hint.appendChild(
+            document.createTextNode(
+              "이 화면을 캡처해서 보내 주세요. 길게 눌러 글자를 복사할 수도 있어요."
+            )
+          );
+          box.appendChild(h);
+          box.appendChild(p);
+          box.appendChild(hint);
+          root.appendChild(box);
+        }
+
+        window.addEventListener("error", function (e) {
+          // 리소스 로드 실패(script/link)는 message 가 비어 있고 target 이 있다.
+          if (e && e.target && e.target !== window && e.target.src) {
+            show("파일을 불러오지 못했어요", "로드 실패: " + e.target.src);
+            return;
+          }
+          show(
+            "실행 중 오류가 났어요",
+            (e && e.message ? e.message : "알 수 없는 오류") +
+              "\n" +
+              (e && e.filename ? e.filename + ":" + e.lineno + ":" + e.colno : "")
+          );
+        }, true);
+
+        window.addEventListener("unhandledrejection", function (e) {
+          var r = e && e.reason;
+          show(
+            "처리되지 않은 오류가 났어요",
+            (r && r.message ? r.message : String(r)) +
+              "\n" +
+              (r && r.stack ? r.stack : "")
+          );
+        });
+
+        // 10초 안에 React 가 마운트되지 않으면 멈춘 것으로 본다.
+        window.setTimeout(function () {
+          if (window.__bootOk) return;
+          show(
+            "앱이 시작되다 멈췄어요",
+            "10초 동안 화면이 그려지지 않았습니다.\n" +
+              "모듈 로드됨: " +
+              (window.__moduleRan ? "예" : "아니오 (JS 자체가 실행되지 않음)")
+          );
+        }, 10000);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

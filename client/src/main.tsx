@@ -16,6 +16,16 @@ if (
   document.documentElement.style.setProperty("--safe-bottom", "34px");
 }
 
+// index.html 의 부팅 감시자에게 "모듈은 실행됐다"고 알린다.
+// 이게 안 찍히면 번들 로드 자체가 실패한 것이다.
+declare global {
+  interface Window {
+    __moduleRan?: boolean;
+    __bootOk?: boolean;
+  }
+}
+window.__moduleRan = true;
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ErrorBoundary>
