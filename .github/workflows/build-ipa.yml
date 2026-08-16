@@ -54,6 +54,11 @@ jobs:
       - name: 웹 앱 빌드
         run: pnpm exec vite build
 
+      # 청크 간 순환 import 는 크롬에서 통과하고 iOS WKWebView 에서만
+      # 흰 화면으로 죽는다. 기기에 올라가기 전에 여기서 막는다.
+      - name: 번들 검사 (순환 import·참조 누락)
+        run: node scripts/check-chunks.mjs dist/public
+
       - name: iOS 프로젝트에 동기화
         run: pnpm exec cap sync ios
 

@@ -17,25 +17,18 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
-    // 화면·데이터는 동적 import 로 이미 쪼개져 있다. 여기서는 잘 안 바뀌는
-    // 라이브러리를 따로 떼어 캐시 적중률을 올린다.
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          if (!id.includes("node_modules")) return;
-          if (
-            id.includes("react-dom") ||
-            id.includes("/react/") ||
-            id.includes("scheduler")
-          ) {
-            return "react";
-          }
-          if (id.includes("@radix-ui") || id.includes("sonner")) return "ui";
-          if (id.includes("lucide-react")) return "icons";
-          if (id.includes("@capacitor")) return "native";
-        },
-      },
-    },
+    // manualChunks 는 쓰지 않는다.
+    //
+    // 예전에 react / ui(@radix-ui, sonner) 로 갈라 놨더니, 어느 버킷에도 안 걸린
+    // radix 의존 패키지(react-remove-scroll 등)가 react 청크로 흘러가면서
+    // react ↔ ui 순환 import 가 생겼다. 순환이면 먼저 평가되는 쪽이 상대의
+    // 바인딩을 undefined 로 보게 되는데, 진입 순서가 엔진마다 달라서
+    // 크롬에서는 멀쩡하고 iOS(WKWebView)에서만 흰 화면으로 죽었다.
+    //   TypeError: undefined is not an object (evaluating 'o.forwardRef')
+    //
+    // 화면·데이터는 동적 import 로 이미 쪼개져 있어 초기 로드 이득은 그대로다.
+    // 청크 경계는 Rollup 이 의존 그래프를 보고 정하게 둔다.
+    // (scripts/check-chunks.mjs 가 빌드 후 순환을 다시 검사한다)
     chunkSizeWarningLimit: 400,
   },
   server: {
