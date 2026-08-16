@@ -20,6 +20,7 @@ import {
 } from "@/lib/level";
 import { daysTo } from "@/lib/engine";
 import { PromotionTest } from "@/components/PromotionTest";
+import { PlacementReview } from "@/components/PlacementReview";
 import { SessionTrend } from "@/components/SessionTrend";
 import { currentPhase, allPhases } from "@/lib/curriculum";
 import { speak } from "@/lib/speech";
@@ -37,10 +38,14 @@ export function ProfileScreen({
   const progress = useMemo(() => promotionProgress(app), [app]);
   const upcoming = nextLevel(level);
   const [testing, setTesting] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
   const phase = useMemo(
     () => currentPhase(app.profile.departureDate),
     [app.profile.departureDate]
   );
+  // 예전 버전에서 본 테스트에는 문항별 기록이 없다. 그때는 설명지를 숨긴다.
+  const placementAnswers = app.profile.placement?.answers ?? [];
+  const placementWrong = placementAnswers.filter(a => !a.correct).length;
 
   const promote = () => {
     if (!upcoming) return;
@@ -283,12 +288,39 @@ export function ProfileScreen({
               ))}
           </div>
         )}
+
+        {placementAnswers.length > 0 && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-3">
+              <Eyebrow className="text-muted-foreground">
+                지난 레벨 테스트
+              </Eyebrow>
+              <span className="font-mono text-[0.75rem] text-muted-foreground">
+                {app.profile.placement?.takenAt.slice(0, 10)}
+              </span>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={() => setReviewOpen(v => !v)}
+            >
+              {reviewOpen
+                ? "오답 설명지 접기"
+                : `오답 설명지 보기 (${placementWrong}문항 틀림)`}
+            </Button>
+          </div>
+        )}
       </Panel>
+
+      {reviewOpen && placementAnswers.length > 0 && (
+        <PlacementReview answers={placementAnswers} />
+      )}
 
       {/* 저장 문장 */}
       <section className="space-y-2.5">
         <Eyebrow className="text-muted-foreground">
-          내 문장장 {app.savedPhrases.length}
+          내 문장 {app.savedPhrases.length}
         </Eyebrow>
         {app.savedPhrases.length === 0 ? (
           <Empty

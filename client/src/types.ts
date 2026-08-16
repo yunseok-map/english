@@ -93,10 +93,34 @@ export type ChatMessage = {
   createdAt: number;
 };
 
+/** 한 문항의 채점 결과. 오답 설명지를 나중에 다시 열어 보려고 통째로 남긴다. */
+export type PlacementAnswer = {
+  questionId: string;
+  band: Level;
+  section: "vocab" | "grammar" | "usage";
+  /** 문제 그대로. 문항 풀이 바뀌어도 지난 결과를 읽을 수 있게 복사해 둔다. */
+  question: string;
+  /** 내가 낸 답. 고르지 않고 넘기면 빈 문자열. */
+  given: string;
+  /** 정답 표기 */
+  expected: string;
+  correct: boolean;
+  explain: string;
+};
+
 export type PlacementRecord = {
   takenAt: string;
   correct: Record<Level, number>;
   total: number;
+  /** 밴드별 출제 수. 무작위 추출이라 회차마다 다를 수 있다. */
+  asked?: Record<Level, number>;
+  /** 영역별 정답/출제 수 */
+  sections?: Record<
+    "vocab" | "grammar" | "usage",
+    { correct: number; total: number }
+  >;
+  /** 문항별 채점 결과(오답 설명지의 원본) */
+  answers?: PlacementAnswer[];
 };
 
 export type LevelEvent = {

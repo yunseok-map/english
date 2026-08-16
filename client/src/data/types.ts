@@ -98,14 +98,45 @@ export type PronunciationCourse = {
   sentences: DialectText[];
 };
 
-export type PlacementQuestion = {
+export type PlacementSection = "vocab" | "grammar" | "usage";
+
+type PlacementBase = {
   id: string;
   band: Level;
-  section: "vocab" | "grammar" | "usage";
+  section: PlacementSection;
   question: string;
-  options: string[];
-  answer: number;
+  /** 왜 그 답인지. 시험이 끝난 뒤 오답 설명지에 그대로 실린다. */
   explain: string;
 };
+
+/**
+ * 레벨 테스트 문항.
+ *
+ * 4지선다만으로는 찍어서 25%가 그냥 들어온다. 밴드당 12문항으로 레벨을 가르는데
+ * 그 정도 잡음이면 판정이 흔들린다. 그래서 찍을 수 없는 유형을 섞는다.
+ *  - choice: 보기 4개 중 고르기 (기존 유형)
+ *  - error : 문장을 네 토막으로 나눠 틀린 토막을 고르기. 보기가 문장의 일부라
+ *            뜻만 대충 알아서는 못 고른다.
+ *  - fill  : 보기 없이 직접 타이핑. 찍기가 아예 불가능하다.
+ */
+export type PlacementQuestion =
+  | (PlacementBase & {
+      kind?: "choice" | "error";
+      options: string[];
+      answer: number;
+    })
+  | (PlacementBase & {
+      kind: "fill";
+      /** 정답으로 인정할 표기들. 첫 번째를 대표 정답으로 보여 준다. */
+      accept: string[];
+      /** 철자를 통째로 묻는 게 아닐 때 주는 힌트(예: "b로 시작"). */
+      hint?: string;
+    });
+
+export function isFillQuestion(
+  question: PlacementQuestion
+): question is Extract<PlacementQuestion, { kind: "fill" }> {
+  return question.kind === "fill";
+}
 
 export type ContractionPair = { short: string; full: string };
