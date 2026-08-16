@@ -6,6 +6,7 @@ import {
   ensureNativeSpeechPermission,
   hasNativeSpeech,
 } from "@/lib/nativeSpeech";
+import { NativeTts, hasNativeTts } from "@/lib/nativeTts";
 
 let currentDialect: Dialect = "us";
 export function setSpeechDialect(dialect: Dialect) {
@@ -28,14 +29,68 @@ export function setPreferredVoice(uri: string) {
 const normalizeLang = (lang: string) => lang.replace("_", "-").toLowerCase();
 
 /**
- * 목소리 점수.
+ * 웹 SpeechSynthesis 에만 있는 옛 노벨티 목소리들.
+ * 로봇·악기·효과음 계열이라 영어 학습에는 쓸 데가 없는데, iOS 목록에서는
+ * 이것들이 앞자리를 차지해 정작 쓸 만한 목소리가 아래로 밀린다. 아예 뺀다.
+ */
+const NOVELTY = new Set(
+  [
+    "Albert",
+    "Bad News",
+    "Bahh",
+    "Bells",
+    "Boing",
+    "Bubbles",
+    "Cellos",
+    "Deranged",
+    "Good News",
+    "Jester",
+    "Junior",
+    "Kathy",
+    "Organ",
+    "Princess",
+    "Ralph",
+    "Superstar",
+    "Trinoids",
+    "Whisper",
+    "Wobble",
+    "Zarvox",
+    "Fred",
+    "Hysterical",
+    "Pipe Organ",
+    "Bruce",
+    "Agnes",
+    "Grandma",
+    "Grandpa",
+    "Rocko",
+    "Sandy",
+    "Shelley",
+    "Eddy",
+    "Flo",
+    "Reed",
+  ].map(n => n.toLowerCase())
+);
+
+function isNovelty(voice: SpeechSynthesisVoice) {
+  const name = voice.name
+    .toLowerCase()
+    .replace(/\s*\(.*\)$/, "")
+    .trim();
+  return (
+    NOVELTY.has(name) ||
+    voice.voiceURI.toLowerCase().includes("speech.synthesis.voice") ||
+    voice.voiceURI.toLowerCase().includes("eloquence")
+  );
+}
+
+/**
+ * 웹 목소리 점수.
  *
- * 예전에는 "언어가 맞는 첫 번째 것"을 그냥 썼는데, iOS 는 그 자리에 보통
- * compact(용량을 줄인 저품질) 보이스를 올려 놓는다. 그래서 딱딱하게 들렸다.
- * 기기에 premium/enhanced 보이스가 깔려 있으면 그쪽을 쓰도록 순위를 매긴다.
- * eloquence 계열은 옛 합성음이라 확실히 뒤로 보낸다.
+ * "언어가 맞는 첫 번째 것"을 그냥 쓰면 iOS 에서는 보통 저품질 목소리가 걸린다.
+ * 지역까지 맞는지, 고품질 표시가 있는지를 보고 순위를 매긴다.
  */
 function voiceScore(voice: SpeechSynthesisVoice, locale: string) {
+  if (isNovelty(voice)) return -1;
   const lang = normalizeLang(voice.lang);
   const want = locale.toLowerCase();
   let score: number;
@@ -46,20 +101,16 @@ function voiceScore(voice: SpeechSynthesisVoice, locale: string) {
   const uri = voice.voiceURI.toLowerCase();
   const name = voice.name.toLowerCase();
   if (uri.includes("premium")) score += 40;
-  else if (uri.includes("enhanced") || name.includes("enhanced")) score += 32;
   else if (name.includes("natural") || name.includes("neural")) score += 36;
+  else if (uri.includes("enhanced") || name.includes("enhanced")) score += 32;
   else if (uri.includes("siri")) score += 24;
   else if (name.includes("google")) score += 20;
-  if (uri.includes("compact")) score -= 10;
-  if (uri.includes("eloquence")) score -= 60;
   if (!voice.localService) score += 4;
   return score;
 }
 
-/** 이 로케일로 쓸 수 있는 목소리를 좋은 순으로. 설정 화면의 선택지로도 쓴다. */
-export function listVoices(localeOverride?: string) {
+function webVoices(locale: string) {
   if (!("speechSynthesis" in window)) return [];
-  const locale = localeOverride ?? ttsLocale(currentDialect);
   return window.speechSynthesis
     .getVoices()
     .map(voice => ({ voice, score: voiceScore(voice, locale) }))
@@ -68,48 +119,82 @@ export function listVoices(localeOverride?: string) {
     .map(v => v.voice);
 }
 
-function pickVoice(locale: string) {
-  const voices = window.speechSynthesis.getVoices();
+function pickWebVoice(locale: string) {
+  if (!("speechSynthesis" in window)) return null;
   if (preferredVoiceURI) {
-    const chosen = voices.find(v => v.voiceURI === preferredVoiceURI);
+    const chosen = window.speechSynthesis
+      .getVoices()
+      .find(v => v.voiceURI === preferredVoiceURI);
     if (chosen) return chosen;
   }
-  let best: SpeechSynthesisVoice | null = null;
-  let bestScore = -1;
-  for (const voice of voices) {
-    const score = voiceScore(voice, locale);
-    if (score > bestScore) {
-      bestScore = score;
-      best = voice;
-    }
-  }
-  return best;
+  return webVoices(locale)[0] ?? null;
 }
 
-/** 현재 쓰이고 있는 목소리 이름. 설정 화면 안내용. */
-export function currentVoiceName(localeOverride?: string) {
-  if (!("speechSynthesis" in window)) return "";
-  return pickVoice(localeOverride ?? ttsLocale(currentDialect))?.name ?? "";
+export type VoiceOption = { id: string; name: string; detail?: string };
+
+const QUALITY_LABEL: Record<string, string> = {
+  premium: "최고 품질",
+  enhanced: "고품질",
+  default: "기본",
+};
+
+/**
+ * 고를 수 있는 목소리 목록(좋은 순).
+ * 설치형 앱에서는 네이티브 목록이라 내려받은 고품질 목소리까지 나온다.
+ */
+export async function loadVoices(
+  localeOverride?: string
+): Promise<VoiceOption[]> {
+  const locale = localeOverride ?? ttsLocale(currentDialect);
+  if (hasNativeTts()) {
+    try {
+      const { voices } = await NativeTts.voices({ language: locale });
+      return voices.map(v => ({
+        id: v.id,
+        name: v.name,
+        detail: QUALITY_LABEL[v.quality] ?? v.quality,
+      }));
+    } catch {
+      /* 네이티브 호출이 실패하면 웹 목록으로 떨어진다. */
+    }
+  }
+  return webVoices(locale).map(v => ({ id: v.voiceURI, name: v.name }));
 }
 
 /** 현재 다이얼렉트(설정)의 보이스로 읽어 준다. localeOverride로 한국어("ko-KR") 등 지정 가능. */
 export function speak(text: string, rate = 0.95, localeOverride?: string) {
+  const locale = localeOverride ?? ttsLocale(currentDialect);
+
+  if (hasNativeTts()) {
+    void NativeTts.speak({
+      text,
+      language: locale,
+      rate,
+      voiceId: preferredVoiceURI || undefined,
+    }).catch(() => undefined);
+    return;
+  }
+
   if (!("speechSynthesis" in window)) {
     toast.error("이 기기에서는 음성 듣기를 지원하지 않아요.");
     return;
   }
-  const locale = localeOverride ?? ttsLocale(currentDialect);
+  const locale2 = locale;
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
-  const voice = pickVoice(locale);
+  const voice = pickWebVoice(locale2);
   utterance.voice = voice;
-  utterance.lang = voice?.lang ?? locale;
+  utterance.lang = voice?.lang ?? locale2;
   utterance.rate = rate;
   utterance.pitch = 1;
   window.speechSynthesis.speak(utterance);
 }
 
 export function stopSpeaking() {
+  if (hasNativeTts()) {
+    void NativeTts.stop().catch(() => undefined);
+    return;
+  }
   if ("speechSynthesis" in window) window.speechSynthesis.cancel();
 }
 

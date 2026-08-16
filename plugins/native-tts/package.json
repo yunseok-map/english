@@ -1,0 +1,15 @@
+{
+  "name": "@wohol/native-tts",
+  "version": "1.0.0",
+  "description": "iOS AVSpeechSynthesizer Capacitor 플러그인. 웹 SpeechSynthesis 가 접근하지 못하는 고품질(enhanced/premium) 목소리를 쓰기 위한 것. JS 쪽은 앱에서 registerPlugin 으로 직접 부른다.",
+  "private": true,
+  "capacitor": {
+    "ios": {
+      "src": "ios"
+    }
+  },
+  "files": [
+    "ios",
+    "Package.swift"
+  ]
+}

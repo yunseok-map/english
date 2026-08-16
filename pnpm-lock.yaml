@@ -44,6 +44,9 @@ importers:
       '@radix-ui/react-switch':
         specifier: ^1.2.6
         version: 1.2.6(@types/react-dom@19.2.1(@types/react@19.2.1))(@types/react@19.2.1)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
+      '@wohol/native-tts':
+        specifier: link:./plugins/native-tts
+        version: link:plugins/native-tts
       '@wohol/speech-recognition':
         specifier: link:./plugins/speech-recognition
         version: link:plugins/speech-recognition

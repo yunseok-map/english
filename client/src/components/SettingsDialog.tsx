@@ -23,7 +23,12 @@ import { DEFAULT_STATE } from "@/state/defaults";
 import { DIALECT_LABEL } from "@/lib/dialect";
 import { Switch } from "@/components/ui/switch";
 import { isNative } from "@/lib/native";
-import { listVoices, speak, speechEngineInUse } from "@/lib/speech";
+import {
+  loadVoices,
+  speak,
+  speechEngineInUse,
+  type VoiceOption,
+} from "@/lib/speech";
 import { requestNotificationPermission } from "@/lib/notifications";
 import { haptic } from "@/lib/haptics";
 import type { Settings } from "@/types";
@@ -66,15 +71,23 @@ export function SettingsDialog({
   const { app, update } = useApp();
   const fileRef = useRef<HTMLInputElement>(null);
 
-  // 목소리 목록은 기기가 준비되는 대로 채워진다(처음 호출에서 빈 배열이 오기도 한다).
-  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  // 목소리 목록. 설치형 앱은 네이티브에서 받아 오므로 비동기다.
+  // 웹은 기기가 준비되는 대로 채워지므로 voiceschanged 도 함께 듣는다.
+  const [voices, setVoices] = useState<VoiceOption[]>([]);
   useEffect(() => {
-    if (!("speechSynthesis" in window)) return;
-    const load = () => setVoices(listVoices());
+    let alive = true;
+    const load = () => {
+      void loadVoices().then(list => {
+        if (alive) setVoices(list);
+      });
+    };
     load();
-    window.speechSynthesis.addEventListener("voiceschanged", load);
-    return () =>
-      window.speechSynthesis.removeEventListener("voiceschanged", load);
+    const synth = "speechSynthesis" in window ? window.speechSynthesis : null;
+    synth?.addEventListener("voiceschanged", load);
+    return () => {
+      alive = false;
+      synth?.removeEventListener("voiceschanged", load);
+    };
   }, [app.settings.dialect]);
   const set = <K extends keyof Settings>(key: K, value: Settings[K]) =>
     update(state => ({
@@ -200,8 +213,10 @@ export function SettingsDialog({
                       자동 (가장 자연스러운 것)
                     </SelectItem>
                     {voices.map(voice => (
-                      <SelectItem key={voice.voiceURI} value={voice.voiceURI}>
-                        {voice.name}
+                      <SelectItem key={voice.id} value={voice.id}>
+                        {voice.detail
+                          ? `${voice.name} · ${voice.detail}`
+                          : voice.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
