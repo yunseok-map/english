@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Check, Clock, Play, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Check, Clock, Play, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,14 @@ import {
   routeTaskKey,
 } from "@/lib/route";
 import { speak } from "@/lib/speech";
+import { useAutoSpeak } from "@/lib/autoSpeak";
+import {
+  clearResumeRequest,
+  dropResume,
+  hasResumeRequest,
+  putResume,
+  resumeFor,
+} from "@/lib/resume";
 import { haptic } from "@/lib/haptics";
 import type { Mistake } from "@/types";
 
@@ -50,6 +58,51 @@ export function MistakesScreen() {
 
   const due = useMemo(() => dueMistakes(app), [app.mistakes]);
 
+  // 문제로 나온 문장이 영어면 바로 읽어 준다. (문법 오답처럼 한국어면 speakable 이 걸러 낸다)
+  useAutoSpeak(queue?.[index]?.label, {
+    enabled: app.settings.autoSpeak,
+    rate: app.settings.rate,
+  });
+
+  // 진행 지점을 남긴다. 중간에 나가도 이어서 풀 수 있다.
+  useEffect(() => {
+    if (!queue || summary) return;
+    update(state =>
+      putResume(state, {
+        kind: "mistakes",
+        ids: queue.map(m => m.id),
+        index,
+        correct,
+        misses,
+        elapsedMs: Date.now() - startedAt,
+      })
+    );
+  }, [queue, index, summary]);
+
+  const resumePoint = resumeFor(app, "mistakes");
+  const resumeDrill = () => {
+    if (!resumePoint) return;
+    const list = resumePoint.ids
+      .map(id => app.mistakes.find(m => m.id === id))
+      .filter((m): m is Mistake => Boolean(m));
+    if (list.length !== resumePoint.ids.length)
+      return toast("이어 할 오답을 찾지 못했어요. 새로 시작해 주세요.");
+    setQueue(list);
+    setIndex(resumePoint.index);
+    setCorrect(resumePoint.correct);
+    setMisses(resumePoint.misses);
+    setAnswer("");
+    setRevealed(false);
+    setSummary(null);
+    setStartedAt(Date.now() - resumePoint.elapsedMs);
+  };
+
+  // 홈에서 "계속"으로 들어온 경우 바로 이어 간다.
+  useEffect(() => {
+    if (hasResumeRequest()) resumeDrill();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const startDrill = (list: Mistake[]) => {
     if (list.length === 0) return;
     setQueue(list);
@@ -69,7 +122,7 @@ export function MistakesScreen() {
   ) => {
     const seconds = (Date.now() - startedAt) / 1000;
     update(state => ({
-      ...state,
+      ...dropResume(state),
       completedTasks: Array.from(
         new Set([...state.completedTasks, routeTaskKey("mistakes")])
       ),
@@ -149,7 +202,10 @@ export function MistakesScreen() {
         label="오답 복습"
         step={index + 1}
         total={queue.length}
-        onExit={() => setQueue(null)}
+        onExit={() => {
+          clearResumeRequest();
+          setQueue(null);
+        }}
       >
         <Transition k={index} direction="left" className="space-y-4">
           <div className="flex min-h-[11rem] flex-col items-center justify-center gap-2 rounded-3xl border bg-card px-5 py-8 text-center">
@@ -245,6 +301,28 @@ export function MistakesScreen() {
 
   return (
     <div className="space-y-3">
+      {resumePoint && (
+        <Panel className="flex items-center gap-3 border-primary/40 bg-primary/5">
+          <div className="min-w-0 flex-1">
+            <p className="text-[0.75rem] font-semibold text-primary">
+              풀다 만 복습이 있어요
+            </p>
+            <p className="mt-0.5 font-mono text-[0.9375rem] font-bold">
+              {resumePoint.index + 1} / {resumePoint.ids.length}
+            </p>
+          </div>
+          <Button size="sm" onClick={resumeDrill}>
+            이어서 하기
+          </Button>
+          <button
+            onClick={() => update(dropResume)}
+            aria-label="이어하기 지우기"
+            className="grid size-9 shrink-0 place-items-center rounded-full text-muted-foreground"
+          >
+            <X size={16} />
+          </button>
+        </Panel>
+      )}
       <Panel className="space-y-3">
         <div>
           <p className="text-[0.8125rem] font-medium text-muted-foreground">

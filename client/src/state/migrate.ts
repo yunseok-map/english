@@ -96,6 +96,7 @@ function migrateSettings(s: any) {
       ? s.contractionMode
       : "paired",
     haptics: typeof s?.haptics === "boolean" ? s.haptics : true,
+    autoSpeak: typeof s?.autoSpeak === "boolean" ? s.autoSpeak : true,
     notifyEnabled:
       typeof s?.notifyEnabled === "boolean" ? s.notifyEnabled : false,
     notifyHour: Math.min(
@@ -134,8 +135,57 @@ function migrateSettings(s: any) {
   } as AppState["settings"];
 }
 
+/** 하다 만 세션 기록을 검증한다. 형태가 깨졌거나 오래됐으면 버린다. */
+const RESUME_MAX_AGE = 3 * 86400000;
+function migrateResume(raw: any): AppState["resume"] {
+  if (!raw || typeof raw !== "object") return null;
+  const savedAt = Number(raw.savedAt) || 0;
+  if (!savedAt || Date.now() - savedAt > RESUME_MAX_AGE) return null;
+
+  if (raw.kind === "grammar") {
+    if (typeof raw.lessonId !== "string") return null;
+    const answers: Record<number, number> = {};
+    for (const [k, v] of Object.entries(raw.answers ?? {})) {
+      if (Number.isInteger(Number(k)) && Number.isInteger(Number(v)))
+        answers[Number(k)] = Number(v);
+    }
+    return { kind: "grammar", lessonId: raw.lessonId, answers, savedAt };
+  }
+
+  if (raw.kind === "words" || raw.kind === "mistakes") {
+    const ids = Array.isArray(raw.ids)
+      ? raw.ids.filter((id: unknown) => typeof id === "string")
+      : [];
+    if (ids.length === 0) return null;
+    const index = Math.min(Math.max(0, Number(raw.index) || 0), ids.length - 1);
+    // 끝난 세션은 이어 갈 게 없다.
+    if (index >= ids.length) return null;
+    const misses = Array.isArray(raw.misses)
+      ? raw.misses
+          .filter((m: any) => m && typeof m.label === "string")
+          .map((m: any) => ({
+            label: m.label,
+            detail: typeof m.detail === "string" ? m.detail : undefined,
+          }))
+      : [];
+    const common = {
+      ids,
+      index,
+      correct: Math.max(0, Number(raw.correct) || 0),
+      misses,
+      elapsedMs: Math.max(0, Number(raw.elapsedMs) || 0),
+      savedAt,
+    };
+    return raw.kind === "words"
+      ? { kind: "words", mode: String(raw.mode || "card"), ...common }
+      : { kind: "mistakes", ...common };
+  }
+
+  return null;
+}
+
 /**
- * 저장된 상태 블롭(버전 무관)을 현재 v3 형태로 정규화한다.
+ * 저장된 상태 블롭(버전 무관)을 현재 v4 형태로 정규화한다.
  * 학습 기록(streak·통계·저장 문장·SRS 진도)은 어떤 경로로도 보존한다.
  */
 export function migrateState(raw: unknown): AppState {
@@ -158,7 +208,7 @@ export function migrateState(raw: unknown): AppState {
     return {
       ...DEFAULT_STATE,
       ...value,
-      version: 3,
+      version: 4,
       profile: {
         ...DEFAULT_STATE.profile,
         ...value.profile,
@@ -185,6 +235,7 @@ export function migrateState(raw: unknown): AppState {
           ? value.translationCache
           : {},
       chat: Array.isArray(value.chat) ? value.chat : [],
+      resume: migrateResume(value.resume),
       stats: {
         ...DEFAULT_STATE.stats,
         ...value.stats,

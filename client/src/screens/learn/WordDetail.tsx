@@ -5,6 +5,7 @@ import { useApp } from "@/state/context";
 import { dt, localizeCollocation, showsHangulHint } from "@/lib/dialect";
 import { createWordCard } from "@/lib/engine";
 import { speak } from "@/lib/speech";
+import { useAutoSpeak } from "@/lib/autoSpeak";
 import type { WordEntry } from "@/data/types";
 
 const TONE_LABEL = { friend: "친구", daily: "일상", business: "격식" } as const;
@@ -20,6 +21,12 @@ export function WordDetail({
   const dialect = app.settings.dialect;
   const display = dt(word.word, dialect);
   const inSrs = Boolean(app.srs[`word-${word.id}`]);
+
+  // 단어를 눌러서 상세를 열면 바로 발음을 들려 준다.
+  useAutoSpeak(display, {
+    enabled: app.settings.autoSpeak,
+    rate: app.settings.rate,
+  });
 
   const addToSrs = () => {
     if (inSrs) return;

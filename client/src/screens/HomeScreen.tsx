@@ -24,6 +24,12 @@ import { currentPhase } from "@/lib/curriculum";
 import { daysTo, todayKey } from "@/lib/engine";
 import { needsRetestBanner } from "@/state/migrate";
 import { dt } from "@/lib/dialect";
+import {
+  dropResume,
+  freshResume,
+  requestResume,
+  resumeSummary,
+} from "@/lib/resume";
 import type { Screen } from "@/components/BottomNav";
 import type { LearnSection } from "@/screens/learn/LearnScreen";
 
@@ -70,6 +76,9 @@ export function HomeScreen({
     [app.profile.departureDate]
   );
   const promotion = useMemo(() => promotionProgress(app), [app]);
+  // 하다 만 학습이 있으면 오늘의 루트보다 먼저 보여 준다. 이어서 하는 게 항상 우선이다.
+  const resumePoint = freshResume(app);
+  const resume = resumePoint ? resumeSummary(resumePoint) : null;
   const upcoming = nextLevel(level);
   // 승급 제안은 하루에 한 번만. 매 진입마다 뜨면 잔소리가 된다.
   const showPromotion =
@@ -155,6 +164,40 @@ export function HomeScreen({
 
   return (
     <div className="space-y-5">
+      {resume && (
+        <Panel className="flex items-center gap-3 border-primary/40 bg-primary/5">
+          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary">
+            <RotateCcw size={18} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-[0.75rem] font-semibold text-primary">
+              이어서 하기
+            </p>
+            <p className="mt-0.5 truncate text-[0.9375rem] font-bold">
+              {resume.title}{" "}
+              <span className="font-mono text-[0.8125rem] font-medium text-muted-foreground">
+                {resume.detail}
+              </span>
+            </p>
+          </div>
+          <Button
+            size="sm"
+            onClick={() => {
+              requestResume();
+              openLearn(resume.section);
+            }}
+          >
+            계속
+          </Button>
+          <button
+            onClick={() => update(dropResume)}
+            aria-label="이어하기 지우기"
+            className="grid size-9 shrink-0 place-items-center rounded-full text-muted-foreground"
+          >
+            <X size={16} />
+          </button>
+        </Panel>
+      )}
       {/* 오늘 진도 */}
       <Panel className="space-y-4">
         <div className="flex items-center gap-5">

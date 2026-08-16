@@ -8,6 +8,7 @@ export const DEFAULT_SETTINGS: Settings = {
   dailyNewWords: 10,
   contractionMode: "paired",
   haptics: true,
+  autoSpeak: true,
   notifyEnabled: false,
   notifyHour: 20,
   speechEngine: "auto",
@@ -20,7 +21,7 @@ export const DEFAULT_SETTINGS: Settings = {
 };
 
 export const DEFAULT_STATE: AppState = {
-  version: 3,
+  version: 4,
   profile: {
     name: "학습자",
     departureDate: "2027-02-05",
@@ -51,6 +52,7 @@ export const DEFAULT_STATE: AppState = {
     studyDates: [],
     sessions: [],
   },
+  resume: null,
 };
 
 export function monthKey() {

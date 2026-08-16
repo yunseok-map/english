@@ -263,6 +263,18 @@ export function SettingsDialog({
               </Row>
             )}
             <Row
+              label="자동 발음"
+              hint="영어 단어·문장이 나오면 알아서 읽어 줘요. 정답을 맞히는 화면에서는 읽지 않아요."
+            >
+              <div className="flex justify-end">
+                <Switch
+                  checked={app.settings.autoSpeak}
+                  aria-label="자동 발음"
+                  onCheckedChange={next => set("autoSpeak", next)}
+                />
+              </div>
+            </Row>
+            <Row
               label="진동 피드백"
               hint={
                 isNative

@@ -12,6 +12,7 @@ import {
   SquareDashed,
   Star,
   Volume2,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,14 @@ import { gradeFor, intervalPreview, reviewCard, type Rating } from "@/lib/fsrs";
 import { scorePronunciation } from "@/lib/phonetics";
 import { dt, showsHangulHint } from "@/lib/dialect";
 import { speak } from "@/lib/speech";
+import { useAutoSpeak } from "@/lib/autoSpeak";
+import {
+  clearResumeRequest,
+  dropResume,
+  hasResumeRequest,
+  putResume,
+  resumeFor,
+} from "@/lib/resume";
 import { haptic } from "@/lib/haptics";
 import { LEVEL_LABEL, LEVEL_ORDER } from "@/lib/level";
 import { clearMistake, noteMistake, routeTaskKey } from "@/lib/route";
@@ -169,6 +178,97 @@ export function WordsScreen() {
     [pool, filters, q, app.bookmarks, app.srs, missedIds]
   );
 
+  // ---- 자동 발음 ----
+  // 영어가 화면에 나타나는 순간 읽어 준다. 단, 답을 맞혀야 하는 화면
+  // (철자 쓰기·빈칸 채우기, 뒤집기 전 카드)에서는 정답을 흘리므로 부르지 않는다.
+  const shownWord = session?.words[index];
+  const shownExample = shownWord?.examples[0];
+  const autoSpeakText =
+    mode === "dictation"
+      ? dictationSet[index]
+        ? dt(dictationSet[index].en, dialect)
+        : null
+      : !shownWord
+        ? null
+        : mode === "card"
+          ? revealed
+            ? dt(shownWord.word, dialect)
+            : null
+          : mode === "choice"
+            ? dt(shownWord.word, dialect)
+            : mode === "speak"
+              ? shownExample
+                ? dt(shownExample.en, dialect)
+                : dt(shownWord.word, dialect)
+              : null;
+  useAutoSpeak(autoSpeakText, {
+    enabled: app.settings.autoSpeak,
+    rate: app.settings.rate,
+  });
+
+  // ---- 이어하기 저장 ----
+  // 문항을 넘길 때마다 진행 지점을 남긴다. 앱을 끄거나 탭을 옮겨도 살아남는다.
+  // deps 를 [mode, index, summary] 로 좁혀 둔 건 update() 로 인한 재렌더에서
+  // 다시 돌지 않게 하기 위해서다. correctCount·misses 는 index 와 같은 배치에서
+  // 갱신되므로 이 시점에 이미 최신 값이다.
+  useEffect(() => {
+    if (!mode || summary) return;
+    const ids =
+      mode === "dictation"
+        ? dictationSet.map(d => d.id)
+        : (session?.words.map(w => w.id) ?? []);
+    if (ids.length === 0) return;
+    update(state =>
+      putResume(state, {
+        kind: "words",
+        mode,
+        ids,
+        index,
+        correct: correctCount,
+        misses,
+        elapsedMs: Date.now() - startedAt.current,
+      })
+    );
+  }, [mode, index, summary]);
+
+  const resumePoint = resumeFor(app, "words");
+  const resumeSession = () => {
+    if (!resumePoint) return;
+    if (resumePoint.mode === "dictation") {
+      const set = resumePoint.ids
+        .map(id => DICTATION.find(d => d.id === id))
+        .filter((d): d is DictationSentence => Boolean(d));
+      if (set.length !== resumePoint.ids.length)
+        return toast("이어 할 문장을 찾지 못했어요. 새로 시작해 주세요.");
+      setDictationSet(set);
+      setSession(null);
+    } else {
+      const list = resumePoint.ids
+        .map(id => pool.find(w => w.id === id))
+        .filter((w): w is WordEntry => Boolean(w));
+      if (list.length !== resumePoint.ids.length)
+        return toast("이어 할 단어를 찾지 못했어요. 새로 시작해 주세요.");
+      setSession({ words: list, hadReview: true });
+    }
+    setMode(resumePoint.mode as SessionMode);
+    setIndex(resumePoint.index);
+    setCorrectCount(resumePoint.correct);
+    setMisses(resumePoint.misses);
+    setRevealed(false);
+    setAnswer("");
+    setSummary(null);
+    // 이미 쓴 시간을 되돌려 놓아야 "몇 분 걸렸는지" 통계가 튀지 않는다.
+    startedAt.current = Date.now() - resumePoint.elapsedMs;
+    shownAt.current = Date.now();
+  };
+
+  // 홈에서 "계속"으로 들어왔으면 한 번 더 누르게 하지 않고 바로 이어 간다.
+  useEffect(() => {
+    if (hasResumeRequest()) resumeSession();
+    // 마운트 때 한 번만. resumeSession 은 이 시점의 값으로 충분하다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const startSession = (nextMode: SessionMode) => {
     if (nextMode === "dictation") {
       const levelPool = DICTATION.filter(d => d.level === app.profile.level);
@@ -239,7 +339,8 @@ export function WordsScreen() {
       if (mode === "dictation" || hadNew) tasks.add(routeTaskKey("words"));
       if (hadReview) tasks.add(routeTaskKey("review"));
       if (mode === "speak") tasks.add(routeTaskKey("speak"));
-      return {
+      // 끝냈으니 이어할 지점은 지운다.
+      return dropResume({
         ...state,
         completedTasks: Array.from(tasks),
         stats: recordSession(recordStudy(state.stats), {
@@ -248,7 +349,7 @@ export function WordsScreen() {
           correct: finalCorrect,
           seconds,
         }),
-      };
+      });
     });
 
     setSummary({
@@ -350,6 +451,8 @@ export function WordsScreen() {
   };
 
   const exitSession = () => {
+    // 직접 닫았으면 되살리기 요청도 취소한다. 안 그러면 바로 다시 열린다.
+    clearResumeRequest();
     setMode(null);
     setSession(null);
     setSummary(null);
@@ -703,6 +806,31 @@ export function WordsScreen() {
 
   return (
     <div className="space-y-5">
+      {resumePoint && (
+        <Panel className="flex items-center gap-3 border-primary/40 bg-primary/5">
+          <div className="min-w-0 flex-1">
+            <p className="text-[0.75rem] font-semibold text-primary">
+              하다 만 학습이 있어요
+            </p>
+            <p className="mt-0.5 truncate text-[0.9375rem] font-bold">
+              {MODE_LABEL[resumePoint.mode as SessionMode] ?? "단어 학습"}{" "}
+              <span className="font-mono text-[0.8125rem] font-medium text-muted-foreground">
+                {resumePoint.index + 1} / {resumePoint.ids.length}
+              </span>
+            </p>
+          </div>
+          <Button size="sm" onClick={resumeSession}>
+            이어서 하기
+          </Button>
+          <button
+            onClick={() => update(dropResume)}
+            aria-label="이어하기 지우기"
+            className="grid size-9 shrink-0 place-items-center rounded-full text-muted-foreground"
+          >
+            <X size={16} />
+          </button>
+        </Panel>
+      )}
       <Panel className="space-y-4">
         <div>
           <p className="text-[0.8125rem] font-medium text-muted-foreground">

@@ -1,5 +1,5 @@
-import { useMemo, useRef, useState } from "react";
-import { Check, CheckCircle2, ChevronRight, Volume2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Check, CheckCircle2, ChevronRight, Volume2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Panel, Eyebrow, Empty } from "@/components/Panel";
 import { useApp } from "@/state/context";
@@ -12,21 +12,42 @@ import { SessionSummary, type SummaryMiss } from "@/components/SessionSummary";
 import { speak } from "@/lib/speech";
 import { LEVEL_LABEL } from "@/lib/level";
 import { noteMistake, routeTaskKey } from "@/lib/route";
+import { speakable } from "@/lib/autoSpeak";
+import {
+  clearResumeRequest,
+  dropResume,
+  hasResumeRequest,
+  putResume,
+  resumeFor,
+} from "@/lib/resume";
 
 function LessonDetail({
   lesson,
   onBack,
+  initialAnswers,
 }: {
   lesson: GrammarLesson;
   onBack: () => void;
+  /** 하다 만 강의를 다시 열 때 이전에 고른 답 */
+  initialAnswers?: Record<number, number>;
 }) {
   const { app, update } = useApp();
   const dialect = app.settings.dialect;
-  const [answers, setAnswers] = useState<Record<number, number>>({});
+  const [answers, setAnswers] =
+    useState<Record<number, number>>(initialAnswers ?? {});
   const [submitted, setSubmitted] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
   const startedAt = useRef(Date.now());
   const completed = app.completedLessons.includes(lesson.id);
+
+  // 고른 답을 그때그때 남긴다. 중간에 나가도 다시 열면 그대로 있다.
+  useEffect(() => {
+    if (submitted) return;
+    if (Object.keys(answers).length === 0) return;
+    update(state =>
+      putResume(state, { kind: "grammar", lessonId: lesson.id, answers })
+    );
+  }, [answers, submitted, lesson.id]);
 
   const score = lesson.quiz.filter((q, i) => answers[i] === q.answer).length;
   const allAnswered = lesson.quiz.every((_, i) => answers[i] !== undefined);
@@ -49,6 +70,7 @@ function LessonDetail({
     else haptic.error();
 
     update(state => {
+      state = dropResume(state);
       let mistakes = state.mistakes;
       for (const { q, i } of wrongQuestions) {
         mistakes = noteMistake(
@@ -189,7 +211,12 @@ function LessonDetail({
                   <button
                     key={oi}
                     disabled={submitted}
-                    onClick={() => setAnswers(prev => ({ ...prev, [qi]: oi }))}
+                    onClick={() => {
+                      setAnswers(prev => ({ ...prev, [qi]: oi }));
+                      // 고른 보기가 영어면 바로 들려 준다. 눈으로만 읽고 넘어가지 않게.
+                      if (app.settings.autoSpeak && speakable(option))
+                        speak(option, app.settings.rate);
+                    }}
                     className={`flex min-h-10 items-center gap-2 rounded-lg border px-3 py-2 text-left text-[0.875rem] transition-colors ${
                       submitted && oi === question.answer
                         ? "border-primary bg-accent text-accent-foreground"
@@ -237,8 +264,15 @@ function LessonDetail({
 }
 
 export function GrammarScreen() {
-  const { app } = useApp();
+  const { app, update } = useApp();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const resumePoint = resumeFor(app, "grammar");
+
+  // 홈에서 "계속"으로 들어왔으면 풀던 강의를 바로 연다.
+  useEffect(() => {
+    if (hasResumeRequest() && resumePoint) setSelectedId(resumePoint.lessonId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const groups = useMemo(() => {
     const order = ["A1", "A2", "B1"] as const;
@@ -261,7 +295,16 @@ export function GrammarScreen() {
     : null;
   if (selected)
     return (
-      <LessonDetail lesson={selected} onBack={() => setSelectedId(null)} />
+      <LessonDetail
+        lesson={selected}
+        onBack={() => {
+          clearResumeRequest();
+          setSelectedId(null);
+        }}
+        initialAnswers={
+          resumePoint?.lessonId === selected.id ? resumePoint.answers : undefined
+        }
+      />
     );
 
   if (allLessons().length === 0)
@@ -269,8 +312,38 @@ export function GrammarScreen() {
       <Empty title="강의 준비 중" text="문법 강의 콘텐츠를 준비하고 있어요." />
     );
 
+  const resumeLesson = resumePoint
+    ? allLessons().find(l => l.id === resumePoint.lessonId)
+    : null;
+
   return (
     <div className="space-y-5">
+      {resumeLesson && (
+        <Panel className="flex items-center gap-3 border-primary/40 bg-primary/5">
+          <div className="min-w-0 flex-1">
+            <p className="text-[0.75rem] font-semibold text-primary">
+              풀다 만 강의가 있어요
+            </p>
+            <p className="mt-0.5 truncate text-[0.9375rem] font-bold">
+              {resumeLesson.title}{" "}
+              <span className="font-mono text-[0.8125rem] font-medium text-muted-foreground">
+                {Object.keys(resumePoint?.answers ?? {}).length} /{" "}
+                {resumeLesson.quiz.length}
+              </span>
+            </p>
+          </div>
+          <Button size="sm" onClick={() => setSelectedId(resumeLesson.id)}>
+            이어서 하기
+          </Button>
+          <button
+            onClick={() => update(dropResume)}
+            aria-label="이어하기 지우기"
+            className="grid size-9 shrink-0 place-items-center rounded-full text-muted-foreground"
+          >
+            <X size={16} />
+          </button>
+        </Panel>
+      )}
       {groups.map(({ level, lessons }) => {
         const done = lessons.filter(l =>
           app.completedLessons.includes(l.id)

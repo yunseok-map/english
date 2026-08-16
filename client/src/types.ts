@@ -11,6 +11,8 @@ export type Settings = {
   contractionMode: "paired" | "short" | "full";
   /** 정답·오답에 진동 피드백을 준다. (네이티브 앱에서만 동작) */
   haptics: boolean;
+  /** 영어 단어·문장이 화면에 나오면 자동으로 읽어 준다. */
+  autoSpeak: boolean;
   /** 복습 알림 사용 여부와 시각(0~23시). */
   notifyEnabled: boolean;
   notifyHour: number;
@@ -136,8 +138,46 @@ export type Stats = {
   sessions: SessionRecord[];
 };
 
+/** 세션 요약·이어하기에서 함께 쓰는 오답 한 줄. */
+export type MissRecord = { label: string; detail?: string };
+
+/**
+ * 하다 만 학습을 이어 가기 위한 지점. 한 칸만 유지한다.
+ * 다른 세션을 새로 시작하면 덮어쓴다 — "마지막에 하던 것"만 이어 간다.
+ */
+export type ResumePoint =
+  | {
+      kind: "words";
+      /** card | choice | typing | cloze | speak | dictation */
+      mode: string;
+      /** 단어 id 또는 받아쓰기 문장 id. 복원할 때 데이터에서 다시 찾는다. */
+      ids: string[];
+      index: number;
+      correct: number;
+      misses: MissRecord[];
+      /** 지금까지 걸린 시간. 이어 해도 통계가 튀지 않게 누적한다. */
+      elapsedMs: number;
+      savedAt: number;
+    }
+  | {
+      kind: "grammar";
+      lessonId: string;
+      /** 문항 번호 → 고른 보기 번호 */
+      answers: Record<number, number>;
+      savedAt: number;
+    }
+  | {
+      kind: "mistakes";
+      ids: string[];
+      index: number;
+      correct: number;
+      misses: MissRecord[];
+      elapsedMs: number;
+      savedAt: number;
+    };
+
 export type AppState = {
-  version: 3;
+  version: 4;
   profile: Profile;
   settings: Settings;
   srs: Record<string, SrsCard>;
@@ -152,4 +192,6 @@ export type AppState = {
   translationCache: Record<string, string>;
   chat: ChatMessage[];
   stats: Stats;
+  /** 하다 만 세션. 없으면 null. */
+  resume: ResumePoint | null;
 };
