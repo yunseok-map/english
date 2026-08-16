@@ -7,7 +7,12 @@ import { Switch } from "@/components/ui/switch";
 import { Panel, Eyebrow } from "@/components/Panel";
 import { useApp } from "@/state/context";
 import { displayContractions, recordStudy } from "@/lib/engine";
-import { llmUsage, requestPartnerReply, type ChatMode } from "@/lib/providers";
+import {
+  llmUsage,
+  requestPartnerReply,
+  takeLlmError,
+  type ChatMode,
+} from "@/lib/providers";
 import { checkGrammar, summarizeIssues } from "@/lib/grammarCheck";
 import { scenarioById, scenariosFor } from "@/lib/scenarios";
 import { localChatReply } from "@/lib/localChat";
@@ -96,6 +101,15 @@ export function ChatScreen() {
           { scenarioRole: scenario?.role, history }
         )
       : null;
+
+    // AI 를 쓰기로 해 놓고 응답을 못 받았으면 이유를 알려 준다.
+    // 예전에는 조용히 규칙 기반 응답으로 넘어가서, 모델이 종료된 뒤로도
+    // AI 가 대답하고 있는 줄 알았다.
+    if (usesLlm && !remote) {
+      toast.error(
+        takeLlmError() ?? "AI에 연결하지 못해 내장 코칭으로 이어갑니다."
+      );
+    }
 
     // 규칙 기반 점검은 AI 키가 있든 없든 돌린다. 키가 없으면 이게 유일한
     // 점검이고, 있으면 AI 가 놓친 것을 받쳐 준다.

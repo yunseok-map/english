@@ -4,6 +4,26 @@ import { llmDialectClause } from "@/lib/dialect";
 import { postJson } from "@/lib/http";
 import { monthKey } from "@/state/defaults";
 
+/**
+ * 쓰는 Gemini 모델.
+ *
+ * 예전에는 gemini-2.0-flash-lite 를 박아 뒀는데 2026-06-01 에 서비스가 종료됐다.
+ * 그 뒤로 번역·대화 요청이 조용히 404 로 떨어져 내장 엔진으로만 돌아가고 있었다.
+ * 실패해도 폴백이 받아 주다 보니 겉으로는 멀쩡해 보여서 오래 못 알아챘다.
+ * 모델을 갈 때는 여기 하나만 고치면 되도록 상수로 둔다.
+ * (구글 공식 후속 모델: 2.0-flash-lite → 3.1-flash-lite)
+ *
+ * 고를 때 지켜야 할 두 가지 —
+ *  1. Stable 만 쓴다. preview 딱지가 붙은 모델은 예고 없이 사라진다.
+ *     방금 그것 때문에 두 달 동안 AI 기능이 죽어 있었다.
+ *  2. "구조화된 출력"을 지원해야 한다. 대화 응답을 JSON 으로 받아
+ *     reply·correction·hint 를 나눠 쓰기 때문이다.
+ *     live / tts 계열 모델은 이 둘을 다 만족하지 못해 여기 쓸 수 없다.
+ *     (gemini-3.1-flash-live, 3.5-live-translate, 3.1-flash-tts …)
+ */
+const GEMINI_MODEL = "gemini-3.1-flash-lite";
+const OPENROUTER_MODEL = "google/gemini-3.1-flash-lite";
+
 export interface TranslationProvider {
   id: Settings["translationProvider"];
   translate(text: string, key: string, dialect: Dialect): Promise<string>;
@@ -100,7 +120,7 @@ const geminiTranslate: TranslationProvider = {
   id: "gemini",
   translate: async (text, key, dialect) => {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${encodeURIComponent(key)}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(key)}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -216,6 +236,38 @@ export function llmUsage(
 /** 대화 한 줄. 최근 이력을 넘겨 맥락이 이어지게 한다. */
 export type ChatTurn = { role: "user" | "assistant"; text: string };
 
+/**
+ * 마지막 AI 대화 호출이 왜 실패했는지.
+ *
+ * 예전에는 실패하면 조용히 null 을 돌려주고 규칙 기반 응답으로 넘어갔다.
+ * 모델이 종료돼서 두 달 넘게 안 돌아가고 있었는데도 화면에는 아무 표시가
+ * 없어서 알아채지 못했다. 실패 이유를 남겨 화면에서 한 번 알려 준다.
+ */
+let lastLlmError: string | null = null;
+/** 실패 사유를 가져가면서 비운다. 같은 오류를 반복해서 띄우지 않기 위해. */
+export function takeLlmError() {
+  const error = lastLlmError;
+  lastLlmError = null;
+  return error;
+}
+
+/** 응답이 실패면 사람이 읽을 수 있는 이유로 바꿔 던진다. */
+async function readLlmJson(response: Response) {
+  if (response.ok) return response.json();
+  const detail = await response.text().catch(() => "");
+  if (response.status === 404)
+    throw new Error(
+      "AI 모델을 찾을 수 없어요 (404). 앱을 최신 버전으로 업데이트해 주세요."
+    );
+  if (response.status === 429)
+    throw new Error(
+      "AI 사용 한도를 넘었어요 (429). 잠시 뒤 다시 시도해 주세요."
+    );
+  if ([400, 401, 403].includes(response.status))
+    throw new Error(`API 키를 확인해 주세요 (${response.status}).`);
+  throw new Error(`AI 응답 오류 (${response.status}). ${detail.slice(0, 80)}`);
+}
+
 function buildInstruction(
   settings: Settings,
   level: Level,
@@ -282,7 +334,7 @@ export async function requestPartnerReply(
   try {
     if (settings.llmProvider === "gemini") {
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${encodeURIComponent(settings.llmKey)}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(settings.llmKey)}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -302,7 +354,7 @@ export async function requestPartnerReply(
           }),
         }
       );
-      const data = await response.json();
+      const data = await readLlmJson(response);
       return parseReply(data?.candidates?.[0]?.content?.parts?.[0]?.text);
     }
     if (settings.llmProvider === "anthropic") {
@@ -324,7 +376,7 @@ export async function requestPartnerReply(
           ],
         }),
       });
-      const data = await response.json();
+      const data = await readLlmJson(response);
       return parseReply(data?.content?.[0]?.text);
     }
     const endpoint =
@@ -340,7 +392,7 @@ export async function requestPartnerReply(
       body: JSON.stringify({
         model:
           settings.llmProvider === "openrouter"
-            ? "google/gemini-2.0-flash-lite-001"
+            ? OPENROUTER_MODEL
             : "gpt-4o-mini",
         messages: [
           { role: "system", content: instruction },
@@ -350,9 +402,13 @@ export async function requestPartnerReply(
         response_format: { type: "json_object" },
       }),
     });
-    const data = await response.json();
+    const data = await readLlmJson(response);
     return parseReply(data?.choices?.[0]?.message?.content);
-  } catch {
+  } catch (error) {
+    lastLlmError =
+      error instanceof Error
+        ? error.message
+        : "AI에 연결하지 못했어요. 네트워크를 확인해 주세요.";
     return null;
   }
 }
