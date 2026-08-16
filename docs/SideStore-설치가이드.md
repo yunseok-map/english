@@ -125,7 +125,7 @@ git push origin v1.0.4
 | 증상 | 해결 |
 | --- | --- |
 | SideStore가 "Could not connect" / 갱신 실패 | **LocalDevVPN이 연결돼 있는지** 확인하세요. 꺼져 있으면 SideStore가 아무것도 못 합니다. |
-| **"could not determine this device's UDID. Please replace your pairing using iloader"** | 페어링 파일이 만료·손상된 겁니다. 아래 [페어링 다시 만들기](#페어링-다시-만들기) 를 보세요. 새 버전이 계속 UPDATE 로 뜨는데 눌러도 설치가 안 되는 것이 이 증상입니다. |
+| **"could not determine this device's UDID"** / **OperationError 1006** | 윈도우 페어링 파일에 UDID 키가 없어서입니다. 재설치로는 안 고쳐집니다. [에러 1006](#에러-1006-unknownudid--윈도우-페어링-파일에-udid-가-없다) 을 보세요. |
 | iloader가 기기를 못 찾음 | iTunes가 설치돼 있는지, 아이폰 잠금이 풀려 있는지, **"이 컴퓨터를 신뢰"** 를 눌렀는지 확인하세요. |
 | 로그인 실패 | 이메일 **대소문자**를 확인하고, 2단계 인증 계정이면 **앱 암호**를 쓰세요. |
 | 설치는 됐는데 앱이 안 열림 | 설정 → 일반 → VPN 및 기기 관리에서 **신뢰**를 눌렀는지, **개발자 모드**가 켜져 있는지 확인하세요. |
@@ -133,6 +133,84 @@ git push origin v1.0.4
 | "설치할 수 없음" / 앱 3개 제한 | 무료 계정은 앱 3개까지입니다. 안 쓰는 사이드로드 앱을 지우세요. |
 | 앱이 갑자기 안 열림 | 서명이 만료된 겁니다. LocalDevVPN을 켜고 SideStore에서 새로고침(Refresh)하면 다시 열립니다. |
 | SideStore 자체가 안 열림 | SideStore도 7일 서명 대상입니다. iloader로 한 번 더 설치하면 됩니다. |
+
+---
+
+## 에러 1006 (unknownUDID) — 윈도우 페어링 파일에 UDID 가 없다
+
+윈도우에서 SideStore 를 쓸 때 가장 많이 막히는 지점입니다. 증상은 둘 중 하나로
+나옵니다. 같은 원인입니다.
+
+- `SideStore could not determine this device's UDID. Please replace your pairing using iloader.`
+- `The operation couldn't be completed. (SideStore.OperationError error 1006.)`
+
+### 왜 나는가
+
+SideStore 는 페어링 파일 **안에서** UDID 를 읽습니다.
+
+```swift
+// SideStore/Core/Pairing/PairingFileManager.swift
+nonisolated var pairingUDID: String? {
+    return plist["UDID"] as? String ?? plist["identifier"] as? String
+}
+```
+
+그런데 윈도우(iTunes/usbmuxd)가 `C:\ProgramData\Apple\Lockdown` 에 만드는 표준
+페어링 기록에는 **UDID 키가 아예 없습니다.**
+
+```
+DeviceCertificate  EscrowBag  HostCertificate  HostID  HostPrivateKey
+RootCertificate    RootPrivateKey  SystemBUID  WiFiMACAddress
+   ← UDID 없음
+```
+
+그래서 위 코드가 `nil` 을 돌려주고 1006 이 납니다. **소스를 다시 추가하거나
+SideStore·앱을 몇 번 재설치해도 고쳐지지 않습니다.** 페어링 파일 자체를 고쳐야
+합니다.
+
+### 고치는 법 — UDID 를 넣은 페어링 파일 만들기
+
+PowerShell 에 그대로 붙여넣습니다. 관리자 권한은 필요 없습니다.
+
+```powershell
+$src  = Get-ChildItem "C:\ProgramData\Apple\Lockdown\*.plist" |
+        Where-Object { $_.Name -ne "SystemConfiguration.plist" } | Select-Object -First 1
+$udid = [System.IO.Path]::GetFileNameWithoutExtension($src.Name)
+$xml  = [System.IO.File]::ReadAllText($src.FullName)
+
+if ($xml -notmatch '<key>UDID</key>') {
+  $i   = $xml.LastIndexOf('</dict>')
+  $xml = $xml.Substring(0,$i) + "`t<key>UDID</key>`n`t<string>$udid</string>`n" + $xml.Substring($i)
+}
+
+$dest = "$env:USERPROFILE\Desktop\$udid.mobiledevicepairing"
+[System.IO.File]::WriteAllText($dest, $xml)
+Write-Host "만들었습니다: $dest"
+```
+
+바탕화면에 `<UDID>.mobiledevicepairing` 파일이 생깁니다.
+
+### 아이폰에 넣기
+
+**방법 1 — iloader**
+케이블을 꽂은 채로 iloader 를 열고, 페어링 파일 가져오기(import) 항목에서 위
+파일을 고릅니다.
+
+**방법 2 — SideStore 에서 직접**
+SideStore 에도 파일 선택기가 있어 `.plist` 와 `.mobiledevicepairing` 을 받습니다.
+
+1. 파일을 아이폰으로 옮깁니다. (iCloud 드라이브, 메일 첨부, 메신저의 "나에게
+   보내기" 등 — 아이폰 **파일** 앱에서 열 수 있으면 됩니다)
+2. SideStore 를 열면 페어링 파일을 골라 달라는 안내가 뜹니다. 안 뜨면 설정에서
+   페어링 파일 항목을 찾습니다.
+3. 옮겨 둔 파일을 고릅니다.
+
+넣고 나면 LocalDevVPN 을 연결하고 설치·업데이트를 다시 시도합니다.
+
+> 이 파일에는 기기 접근 권한이 담긴 **개인 키가 들어 있습니다.** 남에게 보내거나
+> 공개 저장소에 올리지 마세요.
+>
+> 페어링을 새로 만들면(신뢰 재설정, 기기 재부팅 등) 이 작업을 다시 해야 합니다.
 
 ---
 
