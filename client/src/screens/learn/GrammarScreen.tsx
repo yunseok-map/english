@@ -33,8 +33,9 @@ function LessonDetail({
 }) {
   const { app, update } = useApp();
   const dialect = app.settings.dialect;
-  const [answers, setAnswers] =
-    useState<Record<number, number>>(initialAnswers ?? {});
+  const [answers, setAnswers] = useState<Record<number, number>>(
+    initialAnswers ?? {}
+  );
   const [submitted, setSubmitted] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
   const startedAt = useRef(Date.now());
@@ -302,7 +303,9 @@ export function GrammarScreen() {
           setSelectedId(null);
         }}
         initialAnswers={
-          resumePoint?.lessonId === selected.id ? resumePoint.answers : undefined
+          resumePoint?.lessonId === selected.id
+            ? resumePoint.answers
+            : undefined
         }
       />
     );

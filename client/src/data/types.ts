@@ -15,7 +15,9 @@ export type TopicId =
   | "phone"
   | "emergency"
   | "social"
-  | "admin";
+  | "admin"
+  /** 사용자가 직접 추가한 항목 */
+  | "custom";
 
 export type WordExample = { tone: Tone; en: DialectText; ko: string };
 

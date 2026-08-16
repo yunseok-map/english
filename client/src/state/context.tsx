@@ -10,7 +10,11 @@ import type { AppState } from "@/types";
 import { DEFAULT_STATE } from "@/state/defaults";
 import { loadState, saveState } from "@/lib/storage";
 import { sweepOrphanCards } from "@/state/migrate";
-import { setSpeechDialect, setSpeechEngine } from "@/lib/speech";
+import {
+  setPreferredVoice,
+  setSpeechDialect,
+  setSpeechEngine,
+} from "@/lib/speech";
 import { setHapticsEnabled } from "@/lib/haptics";
 import { syncReminders } from "@/lib/notifications";
 import { hideSplash, syncStatusBar } from "@/lib/native";
@@ -147,6 +151,9 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setSpeechEngine(app.settings.speechEngine);
   }, [app.settings.speechEngine]);
+  useEffect(() => {
+    setPreferredVoice(app.settings.voiceURI);
+  }, [app.settings.voiceURI]);
   useEffect(() => {
     setHapticsEnabled(app.settings.haptics);
   }, [app.settings.haptics]);

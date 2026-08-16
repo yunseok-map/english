@@ -25,8 +25,14 @@ import { SwipeCard } from "@/components/SwipeCard";
 import { Transition } from "@/components/Transition";
 import { SpeakButton } from "@/components/SpeakButton";
 import { WordDetail } from "@/screens/learn/WordDetail";
+import { MyWordsPanel } from "@/screens/learn/MyWordsPanel";
 import { useApp } from "@/state/context";
-import { DICTATION, TOPIC_LABEL, words as allWords } from "@/data";
+import {
+  DICTATION,
+  TOPIC_LABEL,
+  dataRevision,
+  words as allWords,
+} from "@/data";
 import type { DictationSentence, TopicId, WordEntry } from "@/data/types";
 import {
   createWordCard,
@@ -40,6 +46,7 @@ import { scorePronunciation } from "@/lib/phonetics";
 import { dt, showsHangulHint } from "@/lib/dialect";
 import { speak } from "@/lib/speech";
 import { useAutoSpeak } from "@/lib/autoSpeak";
+import { myWordEntries } from "@/lib/myEntries";
 import {
   clearResumeRequest,
   dropResume,
@@ -97,7 +104,16 @@ export function WordsScreen() {
 
   // 렌더마다 SRS 전체를 훑지 않도록 메모이즈한다. 카드가 쌓일수록 차이가 커진다.
   const due = useMemo(() => dueCards(app), [app.srs]);
-  const pool = allWords();
+  // 직접 적어 넣은 항목도 기본 단어와 같은 풀에 넣는다. 그래야 브라우즈·필터·
+  // 모든 학습 모드·복습 대기열이 따로 손대지 않아도 그대로 동작한다.
+  const myPool = useMemo(
+    () => myWordEntries(app),
+    [app.myEntries, app.profile.level]
+  );
+  const pool = useMemo(
+    () => (myPool.length ? [...allWords(), ...myPool] : allWords()),
+    [myPool, dataRevision(), fullData]
+  );
   const newWords = useMemo(
     () =>
       pool
@@ -831,6 +847,7 @@ export function WordsScreen() {
           </button>
         </Panel>
       )}
+      <MyWordsPanel />
       <Panel className="space-y-4">
         <div>
           <p className="text-[0.8125rem] font-medium text-muted-foreground">

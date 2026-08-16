@@ -31,7 +31,9 @@ export function resumeFor<K extends ResumePoint["kind"]>(
 }
 
 // 유니온에 그냥 Omit 을 걸면 공통 키만 남아 kind 별 필드가 사라진다. 분배해서 벗긴다.
-type OmitEach<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
+type OmitEach<T, K extends PropertyKey> = T extends unknown
+  ? Omit<T, K>
+  : never;
 
 export function putResume(
   state: AppState,

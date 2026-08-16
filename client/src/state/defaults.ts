@@ -4,7 +4,7 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: "system",
   fontScale: "normal",
   dialect: "us",
-  rate: 0.85,
+  rate: 0.95,
   dailyNewWords: 10,
   contractionMode: "paired",
   haptics: true,
@@ -12,6 +12,7 @@ export const DEFAULT_SETTINGS: Settings = {
   notifyEnabled: false,
   notifyHour: 20,
   speechEngine: "auto",
+  voiceURI: "",
   translationProvider: "fallback",
   translationKey: "",
   llmProvider: "none",
@@ -53,6 +54,7 @@ export const DEFAULT_STATE: AppState = {
     sessions: [],
   },
   resume: null,
+  myEntries: [],
 };
 
 export function monthKey() {

@@ -20,8 +20,80 @@ export function setSpeechEngine(value: Settings["speechEngine"]) {
   engine = value;
 }
 
+let preferredVoiceURI = "";
+export function setPreferredVoice(uri: string) {
+  preferredVoiceURI = uri;
+}
+
+const normalizeLang = (lang: string) => lang.replace("_", "-").toLowerCase();
+
+/**
+ * 목소리 점수.
+ *
+ * 예전에는 "언어가 맞는 첫 번째 것"을 그냥 썼는데, iOS 는 그 자리에 보통
+ * compact(용량을 줄인 저품질) 보이스를 올려 놓는다. 그래서 딱딱하게 들렸다.
+ * 기기에 premium/enhanced 보이스가 깔려 있으면 그쪽을 쓰도록 순위를 매긴다.
+ * eloquence 계열은 옛 합성음이라 확실히 뒤로 보낸다.
+ */
+function voiceScore(voice: SpeechSynthesisVoice, locale: string) {
+  const lang = normalizeLang(voice.lang);
+  const want = locale.toLowerCase();
+  let score: number;
+  if (lang === want) score = 100;
+  else if (lang.startsWith(want.slice(0, 2))) score = 40;
+  else return -1;
+
+  const uri = voice.voiceURI.toLowerCase();
+  const name = voice.name.toLowerCase();
+  if (uri.includes("premium")) score += 40;
+  else if (uri.includes("enhanced") || name.includes("enhanced")) score += 32;
+  else if (name.includes("natural") || name.includes("neural")) score += 36;
+  else if (uri.includes("siri")) score += 24;
+  else if (name.includes("google")) score += 20;
+  if (uri.includes("compact")) score -= 10;
+  if (uri.includes("eloquence")) score -= 60;
+  if (!voice.localService) score += 4;
+  return score;
+}
+
+/** 이 로케일로 쓸 수 있는 목소리를 좋은 순으로. 설정 화면의 선택지로도 쓴다. */
+export function listVoices(localeOverride?: string) {
+  if (!("speechSynthesis" in window)) return [];
+  const locale = localeOverride ?? ttsLocale(currentDialect);
+  return window.speechSynthesis
+    .getVoices()
+    .map(voice => ({ voice, score: voiceScore(voice, locale) }))
+    .filter(v => v.score >= 0)
+    .sort((a, b) => b.score - a.score)
+    .map(v => v.voice);
+}
+
+function pickVoice(locale: string) {
+  const voices = window.speechSynthesis.getVoices();
+  if (preferredVoiceURI) {
+    const chosen = voices.find(v => v.voiceURI === preferredVoiceURI);
+    if (chosen) return chosen;
+  }
+  let best: SpeechSynthesisVoice | null = null;
+  let bestScore = -1;
+  for (const voice of voices) {
+    const score = voiceScore(voice, locale);
+    if (score > bestScore) {
+      bestScore = score;
+      best = voice;
+    }
+  }
+  return best;
+}
+
+/** 현재 쓰이고 있는 목소리 이름. 설정 화면 안내용. */
+export function currentVoiceName(localeOverride?: string) {
+  if (!("speechSynthesis" in window)) return "";
+  return pickVoice(localeOverride ?? ttsLocale(currentDialect))?.name ?? "";
+}
+
 /** 현재 다이얼렉트(설정)의 보이스로 읽어 준다. localeOverride로 한국어("ko-KR") 등 지정 가능. */
-export function speak(text: string, rate = 0.85, localeOverride?: string) {
+export function speak(text: string, rate = 0.95, localeOverride?: string) {
   if (!("speechSynthesis" in window)) {
     toast.error("이 기기에서는 음성 듣기를 지원하지 않아요.");
     return;
@@ -29,14 +101,11 @@ export function speak(text: string, rate = 0.85, localeOverride?: string) {
   const locale = localeOverride ?? ttsLocale(currentDialect);
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
-  const voices = window.speechSynthesis.getVoices();
-  const voice =
-    voices.find(v => v.lang.replace("_", "-") === locale) ??
-    voices.find(v => v.lang.replace("_", "-").startsWith(locale.slice(0, 2))) ??
-    null;
+  const voice = pickVoice(locale);
   utterance.voice = voice;
   utterance.lang = voice?.lang ?? locale;
   utterance.rate = rate;
+  utterance.pitch = 1;
   window.speechSynthesis.speak(utterance);
 }
 

@@ -33,7 +33,9 @@ function toFsrsCard(raw: any, id: string): SrsCard | null {
       lastReview: Number(raw.lastReview) || 0,
       state: (raw.state as CardState) ?? (interval > 0 ? "review" : "new"),
       source:
-        raw.source === "sentence" || raw.source === "mistake"
+        raw.source === "sentence" ||
+        raw.source === "mistake" ||
+        raw.source === "custom"
           ? raw.source
           : "word",
     };
@@ -59,7 +61,9 @@ function toFsrsCard(raw: any, id: string): SrsCard | null {
     lastReview: repetitions > 0 ? Date.now() - Math.min(interval, 30) * DAY : 0,
     state,
     source:
-      raw.source === "sentence" || raw.source === "mistake"
+      raw.source === "sentence" ||
+      raw.source === "mistake" ||
+      raw.source === "custom"
         ? raw.source
         : "word",
   };
@@ -106,6 +110,7 @@ function migrateSettings(s: any) {
     speechEngine: ["auto", "native", "web"].includes(s?.speechEngine)
       ? s.speechEngine
       : "auto",
+    voiceURI: typeof s?.voiceURI === "string" ? s.voiceURI : "",
     translationProvider: [
       "fallback",
       "gemini",
@@ -236,6 +241,15 @@ export function migrateState(raw: unknown): AppState {
           : {},
       chat: Array.isArray(value.chat) ? value.chat : [],
       resume: migrateResume(value.resume),
+      myEntries: Array.isArray(value.myEntries)
+        ? value.myEntries.filter(
+            (e: any) =>
+              e &&
+              typeof e.id === "string" &&
+              typeof e.en === "string" &&
+              typeof e.ko === "string"
+          )
+        : [],
       stats: {
         ...DEFAULT_STATE.stats,
         ...value.stats,
@@ -264,6 +278,11 @@ export function sweepOrphanCards(state: AppState): AppState {
   const srs: Record<string, SrsCard> = {};
   let removed = 0;
   for (const [id, card] of Object.entries(state.srs)) {
+    // 내가 직접 넣은 단어는 데이터 파일에 없으니 고아로 오해하면 안 된다.
+    if (card.source === "custom" || id.startsWith("word-my-")) {
+      srs[id] = card;
+      continue;
+    }
     if (card.source === "word" && !ids.has(id.replace(/^word-/, ""))) {
       removed += 1;
       continue;

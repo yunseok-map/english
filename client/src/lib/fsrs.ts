@@ -81,11 +81,25 @@ function nextStabilityOnLapse(
   );
 }
 
-/** stability 로부터 목표 회상률을 만족하는 복습 간격(일)을 구한다. */
-function intervalFromStability(stability: number) {
-  const days =
-    (stability / FACTOR) * (Math.pow(REQUEST_RETENTION, 1 / DECAY) - 1);
-  return Math.min(MAX_INTERVAL, Math.max(1, Math.round(days)));
+/**
+ * 같은 날 다시 보는 경우의 안정성 갱신.
+ *
+ * 장기 공식은 (exp((1-R)*W10) - 1) 을 곱하는데, 방금 본 카드는 R 이 1 에 붙어
+ * 이 항이 0 이 된다. 즉 안정성이 한 톨도 자라지 않고 간격이 영원히 제자리다.
+ * 실제로 "어려움/보통/쉬움" 이 모두 1일로 표시되던 원인이 이거였다.
+ * FSRS-5 가 이 구간을 위해 따로 두는 단기 계수를 가져다 쓴다.
+ */
+const W_SHORT = [0.6468, 0.1966] as const;
+function shortTermStability(stability: number, rating: Rating) {
+  return Math.max(
+    0.1,
+    stability * Math.exp(W_SHORT[0] * (rating - 3 + W_SHORT[1]))
+  );
+}
+
+/** stability 로부터 목표 회상률을 만족하는 복습 간격(일). 반올림하지 않는다. */
+function daysFromStability(stability: number) {
+  return (stability / FACTOR) * (Math.pow(REQUEST_RETENTION, 1 / DECAY) - 1);
 }
 
 /**
@@ -98,6 +112,9 @@ export function reviewCard(
   now = Date.now()
 ): SrsCard {
   const isNew = card.state === "new" || card.lastReview === 0;
+  const elapsedDays = isNew ? 0 : Math.max(0, (now - card.lastReview) / DAY);
+  // 하루가 지나기 전에 다시 보는 건 "복습"이 아니라 학습 단계의 반복이다.
+  const sameDay = !isNew && elapsedDays < 1;
 
   let stability: number;
   let difficulty: number;
@@ -105,8 +122,13 @@ export function reviewCard(
   if (isNew) {
     stability = initialStability(rating);
     difficulty = initialDifficulty(rating);
+  } else if (sameDay) {
+    difficulty = nextDifficulty(card.difficulty, rating);
+    stability =
+      rating === 1
+        ? Math.min(card.stability, initialStability(1))
+        : shortTermStability(card.stability, rating);
   } else {
-    const elapsedDays = Math.max(0, (now - card.lastReview) / DAY);
     const retention = retrievability(elapsedDays, card.stability);
     difficulty = nextDifficulty(card.difficulty, rating);
     stability =
@@ -117,26 +139,36 @@ export function reviewCard(
 
   stability = Math.max(0.1, stability);
 
-  // "다시"는 오늘 안에 한 번 더 보게 10분 뒤로 보낸다.
-  // 학습 중인 카드의 "어려움"도 짧게(10분) 다시 낸다.
-  const relearn = rating === 1;
-  const shortAgain = relearn || (isNew && rating === 2);
-  const interval = intervalFromStability(stability);
+  const rawDays = daysFromStability(stability);
+  // 간격이 하루가 안 되면 일 단위로 뭉개지 말고 분/시간으로 낸다.
+  // 안 그러면 버튼 네 개가 전부 "1일"이 되어 아무 정보도 주지 못한다.
+  const graduated = rating !== 1 && rawDays >= 1;
 
-  const state: CardState = relearn
-    ? "relearning"
-    : isNew
-      ? rating === 2
-        ? "learning"
-        : "review"
-      : "review";
+  let dueDelay: number;
+  let interval: number;
+  let state: CardState;
+
+  if (rating === 1) {
+    // 틀렸으면 오늘 안에 한 번 더.
+    dueDelay = 10 * 60000;
+    interval = 0;
+    state = isNew ? "learning" : "relearning";
+  } else if (!graduated) {
+    dueDelay = Math.max(10 * 60000, Math.round(rawDays * DAY));
+    interval = 0;
+    state = "learning";
+  } else {
+    interval = Math.min(MAX_INTERVAL, Math.round(rawDays));
+    dueDelay = interval * DAY;
+    state = "review";
+  }
 
   return {
     ...card,
     stability,
     difficulty,
-    interval: shortAgain ? 0 : interval,
-    dueAt: shortAgain ? now + 10 * 60000 : now + interval * DAY,
+    interval,
+    dueAt: now + dueDelay,
     lastReview: now,
     reps: card.reps + 1,
     lapses: card.lapses + (rating === 1 && !isNew ? 1 : 0),
@@ -187,9 +219,11 @@ export function intervalPreview(
   now = Date.now()
 ) {
   const next = reviewCard(card, rating, now);
-  if (next.interval === 0) return "10분";
-  if (next.interval === 1) return "1일";
-  if (next.interval < 30) return `${next.interval}일`;
-  if (next.interval < 365) return `${Math.round(next.interval / 30)}개월`;
+  const ms = next.dueAt - now;
+  if (ms < 3600000) return `${Math.max(1, Math.round(ms / 60000))}분`;
+  if (ms < DAY) return `${Math.round(ms / 3600000)}시간`;
+  const days = Math.round(ms / DAY);
+  if (days < 30) return `${days}일`;
+  if (days < 365) return `${Math.round(days / 30)}개월`;
   return "1년";
 }

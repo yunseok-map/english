@@ -18,6 +18,8 @@ export type Settings = {
   notifyHour: number;
   /** 음성 인식 엔진. auto = 네이티브 우선, 없으면 브라우저. */
   speechEngine: "auto" | "native" | "web";
+  /** 읽어 줄 목소리(voiceURI). 빈 문자열이면 기기에서 가장 좋은 걸 고른다. */
+  voiceURI: string;
   translationProvider:
     | "fallback"
     | "gemini"
@@ -51,7 +53,18 @@ export type SrsCard = {
   /** 마지막 복습 시각(ms). 0이면 아직 안 봤다. */
   lastReview: number;
   state: CardState;
-  source: "word" | "sentence" | "mistake";
+  source: "word" | "sentence" | "mistake" | "custom";
+};
+
+/** 사용자가 직접 적어 넣은 단어·문장. */
+export type MyEntry = {
+  id: string;
+  kind: "word" | "sentence";
+  /** 영어 원문 */
+  en: string;
+  /** 뜻 또는 한국어 해석 */
+  ko: string;
+  createdAt: number;
 };
 
 export type SavedPhrase = {
@@ -194,4 +207,6 @@ export type AppState = {
   stats: Stats;
   /** 하다 만 세션. 없으면 null. */
   resume: ResumePoint | null;
+  /** 직접 적어 넣은 단어·문장 */
+  myEntries: MyEntry[];
 };

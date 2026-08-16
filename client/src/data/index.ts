@@ -42,4 +42,5 @@ export const TOPIC_LABEL: Record<WordEntry["topic"], string> = {
   emergency: "응급·안전",
   social: "친구·스몰토크",
   admin: "비자·서류",
+  custom: "내가 추가",
 };

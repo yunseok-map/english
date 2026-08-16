@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Download, RefreshCw, RotateCcw, Upload } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -23,7 +23,7 @@ import { DEFAULT_STATE } from "@/state/defaults";
 import { DIALECT_LABEL } from "@/lib/dialect";
 import { Switch } from "@/components/ui/switch";
 import { isNative } from "@/lib/native";
-import { speechEngineInUse } from "@/lib/speech";
+import { listVoices, speak, speechEngineInUse } from "@/lib/speech";
 import { requestNotificationPermission } from "@/lib/notifications";
 import { haptic } from "@/lib/haptics";
 import type { Settings } from "@/types";
@@ -65,6 +65,17 @@ export function SettingsDialog({
 }) {
   const { app, update } = useApp();
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // 목소리 목록은 기기가 준비되는 대로 채워진다(처음 호출에서 빈 배열이 오기도 한다).
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  useEffect(() => {
+    if (!("speechSynthesis" in window)) return;
+    const load = () => setVoices(listVoices());
+    load();
+    window.speechSynthesis.addEventListener("voiceschanged", load);
+    return () =>
+      window.speechSynthesis.removeEventListener("voiceschanged", load);
+  }, [app.settings.dialect]);
   const set = <K extends keyof Settings>(key: K, value: Settings[K]) =>
     update(state => ({
       ...state,
@@ -167,9 +178,46 @@ export function SettingsDialog({
                 <SelectContent>
                   <SelectItem value="0.6">아주 느리게</SelectItem>
                   <SelectItem value="0.85">느리게</SelectItem>
-                  <SelectItem value="1">보통</SelectItem>
+                  <SelectItem value="0.95">자연스럽게</SelectItem>
+                  <SelectItem value="1.1">빠르게</SelectItem>
                 </SelectContent>
               </Select>
+            </Row>
+            <Row
+              label="목소리"
+              hint="아이폰 설정 → 손쉬운 사용 → 콘텐츠 말하기 → 음성 → 영어 에서 고품질 목소리를 내려받으면 훨씬 자연스러워져요."
+            >
+              <div className="space-y-2">
+                <Select
+                  value={app.settings.voiceURI || "auto"}
+                  onValueChange={v => set("voiceURI", v === "auto" ? "" : v)}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="auto">
+                      자동 (가장 자연스러운 것)
+                    </SelectItem>
+                    {voices.map(voice => (
+                      <SelectItem key={voice.voiceURI} value={voice.voiceURI}>
+                        {voice.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <button
+                  onClick={() =>
+                    speak(
+                      "Hi, could I get a flat white to go, please?",
+                      app.settings.rate
+                    )
+                  }
+                  className="min-h-9 w-full rounded-lg border bg-card text-[0.8125rem] font-semibold"
+                >
+                  미리 들어 보기
+                </button>
+              </div>
             </Row>
           </section>
 
