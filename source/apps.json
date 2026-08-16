@@ -18,12 +18,20 @@
       "tintColor": "0F766E",
       "category": "education",
       "screenshotURLs": [],
-      "version": "1.0.3",
+      "version": "1.0.4",
       "versionDate": "2026-08-16",
       "versionDescription": "레벨 테스트로 정한 내 레벨에 맞춰 단어·문법·회화를 매일 추천해 주는 워킹홀리데이 영어 학습 앱입니다.",
-      "downloadURL": "https://github.com/yunseok-map/english/releases/download/v1.0.3/WoholEnglish.ipa",
-      "size": 4030242,
+      "downloadURL": "https://github.com/yunseok-map/english/releases/download/v1.0.4/WoholEnglish.ipa",
+      "size": 4031960,
       "versions": [
+        {
+          "version": "1.0.4",
+          "date": "2026-08-16",
+          "localizedDescription": "레벨 테스트로 정한 내 레벨에 맞춰 단어·문법·회화를 매일 추천해 주는 워킹홀리데이 영어 학습 앱입니다.",
+          "downloadURL": "https://github.com/yunseok-map/english/releases/download/v1.0.4/WoholEnglish.ipa",
+          "size": 4031960,
+          "minOSVersion": "15.0"
+        },
         {
           "version": "1.0.3",
           "date": "2026-08-16",
