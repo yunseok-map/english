@@ -1,4 +1,22 @@
+import { Volume2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { speak } from "@/lib/speech";
+import { speakable } from "@/lib/autoSpeak";
+import { useApp } from "@/state/context";
+
+/**
+ * 읽어 줄 문장으로 다듬는다.
+ *  - 빈칸(___)은 "blank" 라고 읽는다. 그냥 두면 밑줄을 하나씩 읽거나 통째로
+ *    삼켜서 어디가 빈칸인지 귀로 알 수 없다.
+ *  - 오류찾기의 토막 구분(/)은 지운다. 문장으로 이어 읽어야 어색한 데가 들린다.
+ */
+function speechText(body: string) {
+  return body
+    .replace(/_{2,}/g, " blank ")
+    .replace(/\s*\/\s*/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
 /**
  * 문항 지문.
@@ -22,9 +40,16 @@ export function QuestionText({
   segmented?: boolean;
   className?: string;
 }) {
+  const { app } = useApp();
   const at = text.indexOf("—");
   const lead = at >= 0 ? text.slice(0, at).trim() : text.trim();
   const body = at >= 0 ? text.slice(at + 1).trim() : "";
+
+  const toRead = speechText(body);
+  const canSpeak = speakable(toRead);
+  const read = () => {
+    if (canSpeak) speak(toRead, app.settings.rate);
+  };
 
   return (
     <div className={cn("space-y-2", className)}>
@@ -32,27 +57,45 @@ export function QuestionText({
         {lead}
       </p>
 
-      {body &&
-        (segmented ? (
-          // leading-loose 로 줄 간격을 넉넉히 준다. 밑줄이 아랫줄 글자에 닿으면
-          // 어디까지가 한 토막인지 되레 헷갈린다.
-          <p className="rounded-xl bg-muted/60 p-3 font-mono text-[0.9375rem] leading-loose [overflow-wrap:anywhere]">
-            {body.split("/").map((segment, i) => (
-              <span key={i}>
-                <sup className="mr-0.5 font-sans text-[0.6875rem] font-bold text-primary">
-                  {String.fromCharCode(65 + i)}
-                </sup>
-                <span className="underline decoration-dotted underline-offset-4">
-                  {segment.trim()}
-                </span>{" "}
-              </span>
-            ))}
-          </p>
-        ) : (
-          <p className="rounded-xl bg-muted/60 p-3 font-mono text-[0.9375rem] leading-relaxed [overflow-wrap:anywhere]">
-            {body}
-          </p>
-        ))}
+      {body && (
+        // 문장 전체가 버튼이다. 작은 스피커 아이콘만 누르게 하면 손가락으로
+        // 맞히기 어렵고, 어차피 여기서 눌러 곤란해질 일도 없다.
+        <button
+          type="button"
+          onClick={read}
+          disabled={!canSpeak}
+          aria-label={canSpeak ? "문장 듣기" : undefined}
+          className="flex w-full items-start gap-2.5 rounded-xl bg-muted/60 p-3 text-left transition-colors enabled:hover:bg-muted"
+        >
+          {segmented ? (
+            // leading-loose 로 줄 간격을 넉넉히 준다. 밑줄이 아랫줄 글자에 닿으면
+            // 어디까지가 한 토막인지 되레 헷갈린다.
+            <span className="min-w-0 flex-1 font-mono text-[0.9375rem] leading-loose [overflow-wrap:anywhere]">
+              {body.split("/").map((segment, i) => (
+                <span key={i}>
+                  <sup className="mr-0.5 font-sans text-[0.6875rem] font-bold text-primary">
+                    {String.fromCharCode(65 + i)}
+                  </sup>
+                  <span className="underline decoration-dotted underline-offset-4">
+                    {segment.trim()}
+                  </span>{" "}
+                </span>
+              ))}
+            </span>
+          ) : (
+            <span className="min-w-0 flex-1 font-mono text-[0.9375rem] leading-relaxed [overflow-wrap:anywhere]">
+              {body}
+            </span>
+          )}
+          {canSpeak && (
+            <Volume2
+              size={15}
+              className="mt-1 shrink-0 text-muted-foreground"
+              aria-hidden
+            />
+          )}
+        </button>
+      )}
     </div>
   );
 }

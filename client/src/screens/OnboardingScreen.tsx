@@ -1,11 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, Check, ChevronRight, PenLine, X } from "lucide-react";
+import {
+  ArrowRight,
+  Check,
+  ChevronRight,
+  PenLine,
+  Volume2,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Panel, Eyebrow } from "@/components/Panel";
 import { BrandMark } from "@/components/art/BrandMark";
 import { PlacementReview } from "@/components/PlacementReview";
 import { QuestionText } from "@/components/QuestionText";
+import { SpeakLine } from "@/components/SpeakLine";
+import { speakable } from "@/lib/autoSpeak";
+import { speak } from "@/lib/speech";
 import { useApp } from "@/state/context";
 import { loadPlacement } from "@/data";
 import type { PlacementQuestion } from "@/data/types";
@@ -361,8 +371,13 @@ export function OnboardingScreen({
                     return (
                       <button
                         key={i}
-                        onClick={() => answer(option)}
-                        disabled={Boolean(graded)}
+                        // 채점 전에는 답하기, 채점 뒤에는 눌러서 발음 듣기.
+                        onClick={() =>
+                          graded
+                            ? speakable(option) &&
+                              speak(option, app.settings.rate)
+                            : answer(option)
+                        }
                         className={`flex w-full items-center gap-2.5 rounded-xl border px-4 py-3 text-left text-[0.9375rem] transition-colors ${
                           state === "correct"
                             ? "border-primary bg-accent text-accent-foreground"
@@ -382,6 +397,13 @@ export function OnboardingScreen({
                         )}
                         {state === "wrong" && (
                           <X size={17} className="shrink-0 text-destructive" />
+                        )}
+                        {graded && speakable(option) && (
+                          <Volume2
+                            size={15}
+                            className="shrink-0 text-muted-foreground"
+                            aria-hidden
+                          />
                         )}
                       </button>
                     );
@@ -432,11 +454,17 @@ export function OnboardingScreen({
                         <dt className="w-12 shrink-0 text-muted-foreground">
                           정답
                         </dt>
-                        <dd className="flex-1 font-mono text-primary [overflow-wrap:anywhere]">
-                          {graded.expected}
+                        <dd className="flex-1">
+                          <SpeakLine text={graded.expected} tone="primary" />
                         </dd>
                       </div>
                     </dl>
+                  )}
+
+                  {/* 4지선다는 보기 자체를 눌러 들을 수 있으니 여기서는 빼고,
+                      보기가 없는 직접입력만 정답을 들려 준다. */}
+                  {graded.correct && current.kind === "fill" && (
+                    <SpeakLine text={graded.expected} tone="primary" />
                   )}
 
                   <p className="rounded-xl bg-muted/60 p-3 text-[0.875rem] leading-relaxed [overflow-wrap:anywhere]">

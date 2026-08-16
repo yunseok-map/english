@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Check, X } from "lucide-react";
 import { Panel, Eyebrow, Empty } from "@/components/Panel";
 import { QuestionText } from "@/components/QuestionText";
+import { SpeakLine } from "@/components/SpeakLine";
 import type { PlacementAnswer } from "@/types";
 
 const SECTION_LABEL: Record<PlacementAnswer["section"], string> = {
@@ -46,8 +47,8 @@ function ReviewCard({ answer }: { answer: PlacementAnswer }) {
         )}
         <div className="flex gap-2">
           <dt className="w-12 shrink-0 text-muted-foreground">정답</dt>
-          <dd className="flex-1 font-mono text-primary [overflow-wrap:anywhere]">
-            {answer.expected}
+          <dd className="flex-1">
+            <SpeakLine text={answer.expected} tone="primary" />
           </dd>
         </div>
       </dl>
