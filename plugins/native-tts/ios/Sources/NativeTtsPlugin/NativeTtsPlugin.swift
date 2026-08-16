@@ -85,7 +85,11 @@ public class NativeTtsPlugin: CAPPlugin, CAPBridgedPlugin {
             try? session.setActive(true)
 
             let utterance = AVSpeechUtterance(string: text)
-            if let voiceId, let voice = AVSpeechSynthesisVoice(identifier: voiceId) {
+            // 골라 둔 목소리라도 지역이 다르면 쓰지 않는다. 미국 목소리로
+            // 호주식을 읽어 주면 호주식으로 바꾼 의미가 없다.
+            if let voiceId,
+               let voice = AVSpeechSynthesisVoice(identifier: voiceId),
+               voice.language.lowercased() == language.lowercased() {
                 utterance.voice = voice
             } else {
                 utterance.voice = Self.bestVoice(for: language)
@@ -108,9 +112,14 @@ public class NativeTtsPlugin: CAPPlugin, CAPBridgedPlugin {
     private static func bestVoice(for language: String) -> AVSpeechSynthesisVoice? {
         let target = language.lowercased()
         let prefix = String(target.prefix(2))
-        let candidates = AVSpeechSynthesisVoice.speechVoices()
+        let all = AVSpeechSynthesisVoice.speechVoices()
             .filter { $0.language.lowercased().hasPrefix(prefix) }
-        let best = candidates.max { rank($0, target: target) < rank($1, target: target) }
+        // 지역이 정확히 맞는 목소리가 하나라도 있으면 그 안에서만 고른다.
+        // 품질 점수를 그냥 비교하면 en-US 고품질이 en-AU 기본을 이겨서
+        // 호주식을 미국 목소리로 읽어 버린다.
+        let exact = all.filter { $0.language.lowercased() == target }
+        let pool = exact.isEmpty ? all : exact
+        let best = pool.max { rank($0, target: target) < rank($1, target: target) }
         return best ?? AVSpeechSynthesisVoice(language: language)
     }
 

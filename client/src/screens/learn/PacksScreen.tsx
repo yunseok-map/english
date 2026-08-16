@@ -7,7 +7,7 @@ import { useApp } from "@/state/context";
 import { PACKS } from "@/data";
 import type { ConversationPack } from "@/data/types";
 import { dt } from "@/lib/dialect";
-import { createSentenceCard, recordStudy } from "@/lib/engine";
+import { createSentenceCard, recordSession, recordStudy } from "@/lib/engine";
 import { speak } from "@/lib/speech";
 import { LEVEL_LABEL, LEVEL_ORDER } from "@/lib/level";
 import { routeTaskKey } from "@/lib/route";
@@ -22,28 +22,29 @@ function PackDetail({
   const { app, update } = useApp();
   const dialect = app.settings.dialect;
   const [revealCount, setRevealCount] = useState(1);
+  const [startedAt] = useState(() => Date.now());
   const finished = revealCount >= pack.roleplay.length;
 
   const savePhrase = (en: string, ko: string) => {
+    // Date.now() 를 세 번 부르면 밀리초가 어긋나는 순간 문장 id 와 카드 id 가
+    // 달라진다. 그러면 문장장에서 지워도 복습 카드가 남는다. 한 번만 찍는다.
+    const stamp = Date.now();
+    const cardId = `sentence-${stamp}`;
     update(state => ({
       ...state,
       savedPhrases: [
         {
-          id: `phrase-${Date.now()}`,
+          id: `phrase-${stamp}`,
           ko,
           en,
           tone: "daily" as const,
-          createdAt: Date.now(),
+          createdAt: stamp,
         },
         ...state.savedPhrases,
       ],
       srs: {
         ...state.srs,
-        [`sentence-${Date.now()}`]: createSentenceCard(
-          `sentence-${Date.now()}`,
-          en,
-          ko
-        ),
+        [cardId]: createSentenceCard(cardId, en, ko),
       },
     }));
     toast.success("내 문장장과 복습 카드에 저장했어요.");
@@ -56,6 +57,7 @@ function PackDetail({
     if (line?.speaker === "staff")
       speak(dt(line.en, dialect), app.settings.rate);
     if (next >= pack.roleplay.length) {
+      const seconds = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
       update(state => ({
         ...state,
         completedTasks: state.completedTasks.includes(routeTaskKey("pack"))
@@ -64,7 +66,14 @@ function PackDetail({
         completedPacks: state.completedPacks.includes(pack.id)
           ? state.completedPacks
           : [...state.completedPacks, pack.id],
-        stats: recordStudy(state.stats),
+        // 회화팩도 학습 추이에 남긴다. 예전에는 단어·문법·오답만 기록돼서
+        // 팩만 하고 나온 날은 그래프에 아무것도 나오지 않았다.
+        stats: recordSession(recordStudy(state.stats), {
+          kind: "pack",
+          correct: pack.roleplay.length,
+          total: pack.roleplay.length,
+          seconds,
+        }),
       }));
     }
   };

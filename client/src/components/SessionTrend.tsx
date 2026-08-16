@@ -51,9 +51,12 @@ export function SessionTrend({ sessions }: { sessions: SessionRecord[] }) {
         {recent.map((session, i) => {
           const ratio = session.total ? session.correct / session.total : 0;
           return (
+            // 막대 높이를 %로 주려면 부모 높이가 정해져 있어야 한다. 예전에는
+            // 이 칸이 auto 여서 %가 무시됐고 막대가 아예 그려지지 않았다.
+            // h-full 로 바깥 h-20 을 물려받게 하고, 막대는 아래에 붙인다.
             <div
               key={`${session.at}-${i}`}
-              className="flex flex-1 flex-col items-center gap-1"
+              className="flex h-full flex-1 flex-col justify-end"
             >
               <div
                 className={`w-full rounded-t-md ${
@@ -63,7 +66,7 @@ export function SessionTrend({ sessions }: { sessions: SessionRecord[] }) {
                       ? "bg-primary/55"
                       : "bg-destructive/50"
                 }`}
-                style={{ height: `${Math.max(6, ratio * 100)}%` }}
+                style={{ height: `${Math.max(8, ratio * 100)}%` }}
                 title={`${KIND_LABEL[session.kind]} ${session.correct}/${session.total}`}
               />
             </div>

@@ -319,12 +319,20 @@ export function ProfileScreen({
                 </button>
                 <button
                   onClick={() =>
-                    update(state => ({
-                      ...state,
-                      savedPhrases: state.savedPhrases.filter(
-                        p => p.id !== phrase.id
-                      ),
-                    }))
+                    update(state => {
+                      // 문장장에서 지웠는데 복습 카드가 남아 있으면 지운 문장이
+                      // 계속 복습에 뜬다. 같은 id 로 만든 카드를 함께 지운다.
+                      const cardId = phrase.id.replace(/^phrase-/, "sentence-");
+                      const srs = { ...state.srs };
+                      delete srs[cardId];
+                      return {
+                        ...state,
+                        srs,
+                        savedPhrases: state.savedPhrases.filter(
+                          p => p.id !== phrase.id
+                        ),
+                      };
+                    })
                   }
                   aria-label="삭제"
                   className="flex size-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted"

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { LockKeyhole, Mic, Send, Volume2 } from "lucide-react";
+import { LockKeyhole, Mic, RotateCcw, Send, Volume2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,6 +8,10 @@ import { Panel, Eyebrow } from "@/components/Panel";
 import { useApp } from "@/state/context";
 import { displayContractions, recordStudy } from "@/lib/engine";
 import { llmUsage, requestPartnerReply, type ChatMode } from "@/lib/providers";
+import { checkGrammar, summarizeIssues } from "@/lib/grammarCheck";
+import { scenarioById, scenariosFor } from "@/lib/scenarios";
+import { localChatReply } from "@/lib/localChat";
+import { noteMistake } from "@/lib/route";
 import { asrLocale } from "@/lib/dialect";
 import { monthKey } from "@/state/defaults";
 import { canRecognizeSpeech, speak, startRecognition } from "@/lib/speech";
@@ -27,31 +31,11 @@ const INTRO: ChatMessage = {
   createdAt: 0,
 };
 
-/** LLM 키가 없을 때 대화를 이어 주는 규칙 기반 응답. */
-function localReply(input: string, mode: ChatMode) {
-  const hasKorean = /[가-힣]/.test(input);
-  const correction = /\bI go\b.*\byesterday\b/i.test(input)
-    ? "I went there yesterday. — 어제 일어난 일이므로 go가 went가 돼요."
-    : hasKorean
-      ? "영어로는 이렇게 시작해 보세요: I would like to say that in English."
-      : undefined;
-  const reply =
-    mode === "journal"
-      ? "That sounds like a full day. What was the best part of it?"
-      : mode === "role"
-        ? "Thanks for coming in. Could you tell me about your availability?"
-        : "That's a good start. Could you tell me one more detail?";
-  const hint =
-    mode === "role"
-      ? "I'm available on weekdays and weekends."
-      : "It was busy, but I learned something new.";
-  return { reply, correction, hint };
-}
-
 export function ChatScreen() {
   const { app, update } = useApp();
   const [input, setInput] = useState("");
   const [mode, setMode] = useState<ChatMode>("free");
+  const [scenarioId, setScenarioId] = useState<string | null>(null);
   const [voice, setVoice] = useState(false);
   const [sending, setSending] = useState(false);
   const [listening, setListening] = useState(false);
@@ -61,7 +45,29 @@ export function ChatScreen() {
   const usesLlm =
     app.settings.llmProvider !== "none" && Boolean(app.settings.llmKey);
   const asrSupported = canRecognizeSpeech();
-  const messages = app.chat.length ? app.chat : [INTRO];
+  const scenario = scenarioById(scenarioId);
+  const scenarios = scenariosFor(app.profile.level);
+
+  // 역할극에서는 그 자리의 상대가 먼저 말을 건다. 상황이 보이지 않으면
+  // 무슨 자리인지 몰라 연습이 되지 않는다.
+  const opening: ChatMessage = scenario
+    ? {
+        id: `intro-${scenario.id}`,
+        role: "assistant",
+        text: scenario.opener,
+        hint: scenario.hint,
+        createdAt: 0,
+      }
+    : INTRO;
+  const messages = app.chat.length ? app.chat : [opening];
+
+  /** 대화를 비우고 새로 시작한다. */
+  const reset = (nextMode = mode, nextScenario = scenarioId) => {
+    update(state => ({ ...state, chat: [] }));
+    setMode(nextMode);
+    setScenarioId(nextScenario);
+    setInput("");
+  };
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -79,17 +85,33 @@ export function ChatScreen() {
     setSending(true);
     setInput("");
 
+    const history = app.chat.map(m => ({ role: m.role, text: m.text }));
     const remote = usesLlm
       ? await requestPartnerReply(
           text,
           app.settings,
           app.profile.level,
           mode,
-          app.settings.dialect
+          app.settings.dialect,
+          { scenarioRole: scenario?.role, history }
         )
       : null;
-    const local = localReply(text, mode);
-    const correction = remote?.correction ?? local.correction;
+
+    // 규칙 기반 점검은 AI 키가 있든 없든 돌린다. 키가 없으면 이게 유일한
+    // 점검이고, 있으면 AI 가 놓친 것을 받쳐 준다.
+    const issues = checkGrammar(text);
+    const shown =
+      app.settings.correctionLevel === "all"
+        ? issues
+        : issues.filter(i => i.severity === "high");
+    const localCorrection =
+      app.settings.correctionLevel === "after"
+        ? undefined
+        : summarizeIssues(shown);
+
+    const turn = app.chat.filter(m => m.role === "user").length;
+    const local = localChatReply({ mode, text, turn, scenario });
+    const correction = remote?.correction ?? localCorrection;
     const assistantText = remote?.reply ?? local.reply;
     const hint = remote?.hint ?? local.hint;
 
@@ -123,17 +145,25 @@ export function ChatScreen() {
               : 0,
           llmMonth: monthKey(),
         }),
-        mistakes: correction
-          ? [
-              {
-                id: `g-${Date.now()}`,
-                type: "grammar" as const,
-                label: correction.slice(0, 40),
-                count: 1,
-                nextReview: Date.now() + 3 * 86400000,
-              },
-              ...state.mistakes,
-            ]
+        // 같은 실수는 한 줄로 합친다. 예전에는 매번 새 id 를 만들어
+        // 똑같은 지적이 오답노트에 끝없이 쌓였다.
+        mistakes: issues.length
+          ? issues
+              .filter(i => i.severity === "high" && i.id !== "korean")
+              .reduce(
+                (acc, issue) =>
+                  noteMistake(
+                    { ...state, mistakes: acc },
+                    {
+                      id: `grammar-chat-${issue.id}`,
+                      type: "grammar",
+                      label: issue.message,
+                      answer: issue.fixed ?? text,
+                      hint: text,
+                    }
+                  ),
+                state.mistakes
+              )
           : state.mistakes,
       };
     });
@@ -174,7 +204,12 @@ export function ChatScreen() {
         {MODES.map(item => (
           <button
             key={item.id}
-            onClick={() => setMode(item.id)}
+            onClick={() => {
+              if (item.id === mode) return;
+              // 모드를 바꾸면 새 대화로 시작한다. 앞 대화가 남아 있으면
+              // 상대가 어떤 자리인지 헷갈린 채로 이어진다.
+              reset(item.id, null);
+            }}
             aria-pressed={mode === item.id}
             className={`min-h-9 rounded-full border px-3 text-[0.8125rem] font-semibold transition-colors ${
               mode === item.id
@@ -189,6 +224,59 @@ export function ChatScreen() {
           <Switch checked={voice} onCheckedChange={setVoice} /> 음성 모드
         </label>
       </div>
+
+      {mode === "role" && (
+        <div className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="flex w-max gap-2 pb-1">
+            {scenarios.map(item => (
+              <button
+                key={item.id}
+                onClick={() => reset("role", item.id)}
+                aria-pressed={scenarioId === item.id}
+                className={`min-h-9 whitespace-nowrap rounded-full border px-3 text-[0.8125rem] font-semibold transition-colors ${
+                  scenarioId === item.id
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "bg-card text-muted-foreground"
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {mode === "role" && !scenario && (
+        <Panel className="text-[0.875rem] leading-relaxed text-muted-foreground">
+          위에서 상황을 하나 고르면 그 자리의 상대가 먼저 말을 걸어요. 카페
+          주문, 셰어하우스 문의, 면접처럼 워홀에서 실제로 마주치는 자리예요.
+        </Panel>
+      )}
+
+      {scenario && (
+        <Panel className="space-y-2 border-primary/30 bg-accent/30">
+          <div className="flex items-center gap-2">
+            <Eyebrow className="text-primary">{scenario.label}</Eyebrow>
+            <button
+              onClick={() => reset("role", scenario.id)}
+              className="ml-auto inline-flex min-h-8 items-center gap-1 rounded-lg bg-card px-2 text-[0.75rem] font-semibold text-muted-foreground"
+            >
+              <RotateCcw size={12} /> 새 대화
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {scenario.phrases.map(phrase => (
+              <button
+                key={phrase}
+                onClick={() => setInput(phrase)}
+                className="rounded-full bg-card px-2.5 py-1 font-mono text-[0.75rem] text-muted-foreground"
+              >
+                {phrase}
+              </button>
+            ))}
+          </div>
+        </Panel>
+      )}
 
       {!usesLlm && (
         <Panel className="flex items-start gap-3 border-primary/30 bg-accent/40">
@@ -209,6 +297,17 @@ export function ChatScreen() {
         <p className="text-right font-mono text-[0.75rem] text-muted-foreground">
           이번 달 AI 대화 {usage.used} / {usage.limit}
         </p>
+      )}
+
+      {app.chat.length > 0 && mode !== "role" && (
+        <div className="flex justify-end">
+          <button
+            onClick={() => reset()}
+            className="inline-flex min-h-8 items-center gap-1 rounded-lg bg-muted px-2.5 text-[0.75rem] font-semibold text-muted-foreground"
+          >
+            <RotateCcw size={12} /> 새 대화
+          </button>
+        </div>
       )}
 
       <div className="space-y-2.5">
@@ -302,12 +401,13 @@ export function ChatScreen() {
         <Eyebrow className="text-muted-foreground">SESSION REPORT</Eyebrow>
         <div className="grid grid-cols-3 gap-3 text-center">
           {[
-            [app.chat.filter(m => m.role === "user").length, "내가 쓴 문장"],
+            // 첫 칸만 이번 대화 기준이고 나머지는 누적이라 라벨을 나눠 둔다.
+            [app.chat.filter(m => m.role === "user").length, "이번 대화 문장"],
             [
               app.mistakes.filter(m => m.type === "grammar").length,
-              "문법 점검",
+              "문법 점검 누적",
             ],
-            [app.savedPhrases.length, "저장 문장"],
+            [app.savedPhrases.length, "저장 문장 누적"],
           ].map(([value, label]) => (
             <div key={label} className="rounded-xl bg-muted/60 py-3">
               <b className="block font-mono text-[1.25rem] font-semibold tabular-nums">

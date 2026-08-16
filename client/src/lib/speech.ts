@@ -94,7 +94,9 @@ function voiceScore(voice: SpeechSynthesisVoice, locale: string) {
   const lang = normalizeLang(voice.lang);
   const want = locale.toLowerCase();
   let score: number;
-  if (lang === want) score = 100;
+  // 지역 일치가 품질보다 우선이다. 그러지 않으면 en-US 고품질 목소리가
+  // en-AU 기본 목소리를 이겨서 호주식을 미국 발음으로 읽게 된다.
+  if (lang === want) score = 1000;
   else if (lang.startsWith(want.slice(0, 2))) score = 40;
   else return -1;
 
@@ -125,7 +127,9 @@ function pickWebVoice(locale: string) {
     const chosen = window.speechSynthesis
       .getVoices()
       .find(v => v.voiceURI === preferredVoiceURI);
-    if (chosen) return chosen;
+    // 골라 둔 목소리라도 지역이 다르면 무시하고 자동 선택으로 넘어간다.
+    if (chosen && normalizeLang(chosen.lang) === locale.toLowerCase())
+      return chosen;
   }
   return webVoices(locale)[0] ?? null;
 }
@@ -159,6 +163,26 @@ export async function loadVoices(
     }
   }
   return webVoices(locale).map(v => ({ id: v.voiceURI, name: v.name }));
+}
+
+/**
+ * 지금 표기(미국식/호주식)에 딱 맞는 목소리가 기기에 있는지.
+ * 없으면 다른 영어 목소리로 읽히므로 설정 화면에서 안내한다.
+ */
+export async function hasExactVoice(localeOverride?: string) {
+  const locale = (localeOverride ?? ttsLocale(currentDialect)).toLowerCase();
+  if (hasNativeTts()) {
+    try {
+      const { voices } = await NativeTts.voices({ language: locale });
+      return voices.some(v => v.lang.toLowerCase().replace("_", "-") === locale);
+    } catch {
+      return true;
+    }
+  }
+  if (!("speechSynthesis" in window)) return true;
+  return window.speechSynthesis
+    .getVoices()
+    .some(v => normalizeLang(v.lang) === locale);
 }
 
 /** 현재 다이얼렉트(설정)의 보이스로 읽어 준다. localeOverride로 한국어("ko-KR") 등 지정 가능. */

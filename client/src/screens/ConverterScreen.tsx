@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ChevronRight,
   Copy,
@@ -16,12 +16,12 @@ import { useApp } from "@/state/context";
 import {
   createSentenceCard,
   displayContractions,
-  fallbackTranslate,
   matchLessons,
   relevantWords,
   toTone,
 } from "@/lib/engine";
 import { translateText } from "@/lib/providers";
+import { composeEnglish, TOPIC_LABEL, type PhraseHit } from "@/lib/phrasebook";
 import { dt } from "@/lib/dialect";
 import { canRecognizeSpeech, speak, startRecognition } from "@/lib/speech";
 import type { LearnSection } from "@/screens/learn/LearnScreen";
@@ -70,7 +70,27 @@ export function ConverterScreen({
   );
   const [loading, setLoading] = useState(false);
   const [listening, setListening] = useState(false);
+  // 같은 자리에서 같이 쓰는 표현. 번역 결과 한 줄만 주는 것보다,
+  // 그 상황에서 바로 이어 쓸 문장을 함께 보여 주는 편이 실제로 도움이 된다.
+  const [related, setRelated] = useState<PhraseHit[]>([]);
 
+  // 표현 사전은 첫 화면 번들에 없다. 이 화면에 들어왔을 때 한 번 받아 온다.
+  useEffect(() => {
+    let live = true;
+    composeEnglish(input, dialect).then(r => {
+      if (live) setRelated(r.hits);
+    });
+    return () => {
+      live = false;
+    };
+    // 처음 한 번만 받아 오면 된다. 이후에는 변환할 때 갱신한다.
+  }, []);
+
+  // 결과 문장에 이미 들어간 표현은 빼고 보여 준다.
+  const extras = useMemo(
+    () => related.filter(hit => !result.includes(hit.en)).slice(0, 4),
+    [related, result]
+  );
   const lessons = useMemo(() => matchLessons(result), [result]);
   const words = useMemo(
     () => relevantWords(result, dialect),
@@ -81,14 +101,16 @@ export function ConverterScreen({
     if (!input.trim() || loading) return;
     setLoading(true);
     const cached = app.translationCache[input];
+    const offline = await composeEnglish(input, dialect);
     const translated = cached || (await translateText(input, app.settings));
     if (
       !cached &&
       app.settings.translationProvider !== "fallback" &&
-      translated === fallbackTranslate(input)
+      translated === offline.text
     ) {
       toast("연결이 불안정해 내장 표현 엔진으로 만들었어요.");
     }
+    setRelated(offline.hits);
     update(state => ({
       ...state,
       translationCache: { ...state.translationCache, [input]: translated },
@@ -97,14 +119,14 @@ export function ConverterScreen({
     setLoading(false);
   };
 
-  const save = (tone: Tone, sentence: string) => {
+  const save = (tone: Tone, sentence: string, ko = input) => {
     const id = `${Date.now()}-${tone}`;
     update(state => ({
       ...state,
       savedPhrases: [
         {
           id: `phrase-${id}`,
-          ko: input,
+          ko,
           en: sentence,
           tone,
           createdAt: Date.now(),
@@ -113,11 +135,7 @@ export function ConverterScreen({
       ],
       srs: {
         ...state.srs,
-        [`sentence-${id}`]: createSentenceCard(
-          `sentence-${id}`,
-          sentence,
-          input
-        ),
+        [`sentence-${id}`]: createSentenceCard(`sentence-${id}`, sentence, ko),
       },
     }));
     toast.success("내 문장장과 복습 카드에 저장했어요.");
@@ -291,6 +309,38 @@ export function ConverterScreen({
                   {word.nuance}
                 </p>
               )}
+            </div>
+          ))}
+        </Panel>
+      )}
+
+      {extras.length > 0 && (
+        <Panel className="space-y-2">
+          <Eyebrow className="text-muted-foreground">
+            {TOPIC_LABEL[extras[0].topic]} · 같이 쓰는 표현
+          </Eyebrow>
+          {extras.map(hit => (
+            <div
+              key={hit.id}
+              className="flex items-center gap-2 rounded-xl bg-muted/50 p-3"
+            >
+              <p className="min-w-0 flex-1 font-mono text-[0.875rem] [overflow-wrap:anywhere]">
+                {hit.en}
+              </p>
+              <button
+                onClick={() => speak(hit.en, app.settings.rate)}
+                aria-label={`${hit.en} 듣기`}
+                className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-background text-muted-foreground hover:text-foreground"
+              >
+                <Volume2 size={14} />
+              </button>
+              <button
+                onClick={() => save("daily", hit.en)}
+                aria-label={`${hit.en} 저장`}
+                className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-background text-muted-foreground hover:text-foreground"
+              >
+                <Save size={14} />
+              </button>
             </div>
           ))}
         </Panel>

@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronRight, Mic, Square, Volume2 } from "lucide-react";
 import { toast } from "sonner";
 import { Panel, Eyebrow, Empty } from "@/components/Panel";
@@ -6,7 +6,7 @@ import { useApp } from "@/state/context";
 import { PRONUNCIATION_COURSES } from "@/data";
 import type { PronunciationCourse } from "@/data/types";
 import { dt, asrLocale } from "@/lib/dialect";
-import { recordStudy } from "@/lib/engine";
+import { recordSession, recordStudy } from "@/lib/engine";
 import { scorePronunciation } from "@/lib/phonetics";
 import { haptic } from "@/lib/haptics";
 import {
@@ -34,6 +34,30 @@ function CourseDetail({
   const [scores, setScores] = useState<Record<number, number>>({});
   const recognizer = useRef<RecognizerHandle | null>(null);
   const asrSupported = canRecognizeSpeech();
+  const startedAt = useRef(Date.now());
+  // 코스를 나갈 때 이 코스에서 받은 점수를 세션 한 건으로 남긴다.
+  // 화면이 사라진 뒤 update 를 부르므로 최신 점수를 ref 로 들고 있는다.
+  const scoresRef = useRef<Record<number, number>>({});
+
+  useEffect(() => {
+    const started = startedAt.current;
+    return () => {
+      // 듣는 중에 화면을 벗어나면 마이크가 계속 열려 있다. 반드시 끈다.
+      recognizer.current?.stop();
+      const values = Object.values(scoresRef.current);
+      if (values.length === 0) return;
+      const seconds = Math.max(1, Math.round((Date.now() - started) / 1000));
+      update(state => ({
+        ...state,
+        stats: recordSession(state.stats, {
+          kind: "pronunciation",
+          correct: values.filter(v => v >= 70).length,
+          total: values.length,
+          seconds,
+        }),
+      }));
+    };
+  }, [update]);
 
   const checkSentence = async (index: number, sentence: string) => {
     if (listening !== null) {
@@ -47,7 +71,11 @@ function CourseDetail({
         const score = result.score;
         if (score >= 70) haptic.success();
         else haptic.error();
-        setScores(prev => ({ ...prev, [index]: score }));
+        setScores(prev => {
+          const next = { ...prev, [index]: score };
+          scoresRef.current = next;
+          return next;
+        });
         update(state => ({
           ...state,
           stats: recordStudy(state.stats, {

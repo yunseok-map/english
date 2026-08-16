@@ -135,6 +135,7 @@ export function WordsScreen() {
   const [misses, setMisses] = useState<SummaryMiss[]>([]);
   const [summary, setSummary] = useState<{
     title: string;
+    mode: SessionMode;
     correct: number;
     total: number;
     seconds: number;
@@ -370,6 +371,7 @@ export function WordsScreen() {
 
     setSummary({
       title: MODE_LABEL[mode ?? "card"],
+      mode: mode ?? "card",
       correct: finalCorrect,
       total,
       seconds,
@@ -489,18 +491,41 @@ export function WordsScreen() {
           onRetryMisses={
             summary.misses.length > 0
               ? () => {
-                  const labels = new Set(summary.misses.map(m => m.label));
-                  const retry = pool.filter(w =>
-                    labels.has(dt(w.word, dialect))
+                  // 표시 문자열이 아니라 id 로 다시 찾는다. 예전에는 라벨을 단어
+                  // 목록과 맞춰 봤는데, 받아쓰기는 라벨이 문장이라 아무것도 못
+                  // 찾고 조용히 세션만 닫혔다.
+                  const ids = new Set(
+                    summary.misses
+                      .map(m => m.id)
+                      .filter((id): id is string => Boolean(id))
                   );
-                  if (!retry.length) return exitSession();
-                  setSession({ words: retry, hadReview: true });
-                  setMode("card");
+                  if (summary.mode === "dictation") {
+                    const set = dictationSet.filter(d => ids.has(d.id));
+                    if (!set.length) {
+                      toast("다시 풀 문장을 찾지 못했어요.");
+                      return exitSession();
+                    }
+                    setDictationSet(set);
+                    setSession(null);
+                  } else {
+                    const retry = pool.filter(w => ids.has(w.id));
+                    if (!retry.length) {
+                      toast("다시 풀 단어를 찾지 못했어요.");
+                      return exitSession();
+                    }
+                    setSession({ words: retry, hadReview: true });
+                  }
+                  // 틀렸던 방식 그대로 다시 푼다. 받아쓰기를 틀렸는데
+                  // 플래시카드가 나오면 다시 푸는 게 아니다.
+                  setMode(summary.mode);
                   setIndex(0);
                   setCorrectCount(0);
                   setMisses([]);
+                  setRevealed(false);
+                  setAnswer("");
                   setSummary(null);
                   startedAt.current = Date.now();
+                  shownAt.current = Date.now();
                 }
               : undefined
           }
@@ -552,7 +577,11 @@ export function WordsScreen() {
                   variant="outline"
                   size="lg"
                   onClick={() =>
-                    submitDictation(false, { label: sentence, detail: item.ko })
+                    submitDictation(false, {
+                      id: item.id,
+                      label: sentence,
+                      detail: item.ko,
+                    })
                   }
                 >
                   더 연습할게요
@@ -612,7 +641,9 @@ export function WordsScreen() {
       toast(ok ? "정답이에요!" : `정답: ${display}`);
       submitWord(word, {
         correct: ok,
-        miss: ok ? undefined : { label: display, detail: word.meaning },
+        miss: ok
+          ? undefined
+          : { id: word.id, label: display, detail: word.meaning },
       });
     };
 
@@ -633,7 +664,11 @@ export function WordsScreen() {
                 submitWord(word, {
                   correct: false,
                   rating: 1,
-                  miss: { label: display, detail: word.meaning },
+                  miss: {
+                    id: word.id,
+                    label: display,
+                    detail: word.meaning,
+                  },
                 })
               }
               onSwipeRight={() =>
@@ -693,7 +728,11 @@ export function WordsScreen() {
                             rating,
                             miss:
                               rating === 1
-                                ? { label: display, detail: word.meaning }
+                                ? {
+                                    id: word.id,
+                                    label: display,
+                                    detail: word.meaning,
+                                  }
                                 : undefined,
                           })
                         }
@@ -745,7 +784,11 @@ export function WordsScreen() {
                       correct: ok,
                       miss: ok
                         ? undefined
-                        : { label: display, detail: word.meaning },
+                        : {
+                            id: word.id,
+                            label: display,
+                            detail: word.meaning,
+                          },
                     });
                   }}
                   className="min-h-12 rounded-2xl border bg-card px-4 py-3 text-left text-[0.9375rem] transition-transform active:scale-[0.99]"
@@ -789,7 +832,9 @@ export function WordsScreen() {
                   correct: ok,
                   rating:
                     score >= 88 ? 4 : score >= 70 ? 3 : score >= 50 ? 2 : 1,
-                  miss: ok ? undefined : { label: display, detail },
+                  miss: ok
+                    ? undefined
+                    : { id: word.id, label: display, detail },
                 });
               }}
             />

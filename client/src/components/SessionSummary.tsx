@@ -4,7 +4,12 @@ import { Button } from "@/components/ui/button";
 import { ProgressRing } from "@/components/Progress";
 import { haptic } from "@/lib/haptics";
 
-export type SummaryMiss = { label: string; detail?: string };
+export type SummaryMiss = {
+  label: string;
+  detail?: string;
+  /** 어떤 항목이었는지. "틀린 것만 다시 풀기"가 이 값으로 문제를 다시 찾는다. */
+  id?: string;
+};
 
 /**
  * 세션이 끝난 뒤 보여 주는 결과 화면.

@@ -9,6 +9,7 @@ import type {
 import type { GrammarLesson, WordEntry } from "@/data/types";
 import { CONTRACTIONS, dataRevision, lessons, words } from "@/data";
 import { dt } from "@/lib/dialect";
+import { composeEnglish } from "@/lib/phrasebook";
 
 export function daysTo(date: string) {
   return Math.max(
@@ -147,25 +148,15 @@ export function wordEntryById(id: string) {
 }
 
 // ---- 변환기 폴백 번역 ----
-const localPatterns: Array<[RegExp, string]> = [
-  [/얼마|가격/, "How much is this?"],
-  [/도와.*주|도움/, "Could you help me with this?"],
-  [/화장실/, "Where is the bathroom?"],
-  [/예약/, "I would like to make a booking."],
-  [/일.*구해|지원/, "I am looking for a job."],
-  [/감사/, "Thank you. I really appreciate it."],
-  [/미안|죄송/, "I am sorry about that."],
-  [/추천/, "What do you recommend?"],
-  [/할인|깎/, "Could you give me a discount?"],
-  [/잘 모르겠|이해가 안/, "I am not sure. Could you explain it again?"],
-  [/다시.*말|한 번 더/, "Could you say that again, please?"],
-  [/천천히/, "Could you speak more slowly, please?"],
-];
-export function fallbackTranslate(korean: string) {
-  return (
-    localPatterns.find(([pattern]) => pattern.test(korean))?.[1] ??
-    "Could you please help me with this?"
-  );
+/**
+ * 번역 API 없이 만드는 문장. 표현 사전과 매칭은 lib/phrasebook 이 맡는다.
+ * 여기서는 화면들이 쓰던 이름만 유지한다.
+ */
+export async function fallbackTranslate(
+  korean: string,
+  dialect: Dialect = "us"
+) {
+  return (await composeEnglish(korean, dialect)).text;
 }
 
 // ---- 톤 변환 ----
@@ -176,17 +167,47 @@ export function toTone(base: string, tone: Tone) {
       .replace(/Would it be possible for you to/gi, "Can you")
       .replace(/Could you please/gi, "Can you")
       .replace(/Could you/g, "Can you")
+      .replace(/Could I get/g, "Can I get")
+      .replace(/Could I/g, "Can I")
+      .replace(/Could we/g, "Can we")
       .replace(/I would like to/g, "I'd like to")
       .replace(/\bI am\b/g, "I'm")
+      .replace(/\bI have\b/g, "I've")
       .replace(/\bdo not\b/g, "don't")
       .replace(/\bcannot\b/g, "can't")
       .replace(/, please\?/g, "?")
       .replace(/, please\./g, ".");
+  // 비즈니스 톤에서는 축약형을 전부 풀어 쓴다. 표현 사전이 일상 톤 기준이라
+  // I've · isn't 같은 축약이 그대로 남아 있으면 격식 문장으로 보이지 않는다.
   return base
     .replace(/\bCan you\b/g, "Could you")
+    .replace(/\bCan I\b/g, "Could I")
+    .replace(/\bI'd like\b/g, "I would like")
     .replace(/\bI'm\b/g, "I am")
+    .replace(/\bI've\b/g, "I have")
+    .replace(/\bI'll\b/g, "I will")
+    .replace(/\bWe're\b/g, "We are")
+    .replace(/\bwe're\b/g, "we are")
+    .replace(/\bYou're\b/g, "you are")
+    .replace(/\byou're\b/g, "you are")
+    .replace(/\bThat's\b/g, "That is")
+    .replace(/\bthat's\b/g, "that is")
+    .replace(/\bThere's\b/g, "There is")
+    .replace(/\bthere's\b/g, "there is")
+    .replace(/\bHere's\b/g, "Here is")
+    .replace(/\bhere's\b/g, "here is")
+    .replace(/\bWhat's\b/g, "What is")
+    .replace(/\bwhat's\b/g, "what is")
+    .replace(/\bHow's\b/g, "How is")
+    .replace(/\bit's\b/gi, m => (m[0] === "I" ? "It is" : "it is"))
+    .replace(/\bisn't\b/g, "is not")
+    .replace(/\baren't\b/g, "are not")
+    .replace(/\bhaven't\b/g, "have not")
+    .replace(/\bdoesn't\b/g, "does not")
+    .replace(/\bdidn't\b/g, "did not")
     .replace(/\bdon't\b/g, "do not")
     .replace(/\bcan't\b/g, "cannot")
+    .replace(/\bwon't\b/g, "will not")
     .replace(/\bgonna\b/g, "going to")
     .replace(/\bwanna\b/g, "want to");
 }
@@ -256,10 +277,17 @@ export function relevantWords(sentence: string, dialect: Dialect) {
   if (tokens.size === 0) return [];
   const index = tokenIndex(dialect);
   const found: WordEntry[] = [];
+  // 같은 표제어가 레벨마다 실려 있어(refund → a1/a2) 그대로 담으면
+  // "단어 선택"에 똑같은 카드가 두 번 뜬다. 표제어 기준으로 한 번만 담는다.
+  const seen = new Set<string>();
   for (const token of tokens) {
     for (const entry of index.get(token) ?? []) {
-      const parts = dt(entry.word, dialect).toLowerCase().split(" ");
-      if (parts.every(part => tokens.has(part))) found.push(entry);
+      const word = dt(entry.word, dialect).toLowerCase();
+      if (seen.has(word)) continue;
+      const parts = word.split(" ");
+      if (!parts.every(part => tokens.has(part))) continue;
+      seen.add(word);
+      found.push(entry);
       if (found.length >= 4) return found;
     }
   }

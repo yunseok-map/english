@@ -24,6 +24,7 @@ import { DIALECT_LABEL } from "@/lib/dialect";
 import { Switch } from "@/components/ui/switch";
 import { isNative } from "@/lib/native";
 import {
+  hasExactVoice,
   loadVoices,
   speak,
   speechEngineInUse,
@@ -74,11 +75,15 @@ export function SettingsDialog({
   // 목소리 목록. 설치형 앱은 네이티브에서 받아 오므로 비동기다.
   // 웹은 기기가 준비되는 대로 채워지므로 voiceschanged 도 함께 듣는다.
   const [voices, setVoices] = useState<VoiceOption[]>([]);
+  const [voiceMatches, setVoiceMatches] = useState(true);
   useEffect(() => {
     let alive = true;
     const load = () => {
       void loadVoices().then(list => {
         if (alive) setVoices(list);
+      });
+      void hasExactVoice().then(ok => {
+        if (alive) setVoiceMatches(ok);
       });
     };
     load();
@@ -198,7 +203,11 @@ export function SettingsDialog({
             </Row>
             <Row
               label="목소리"
-              hint="아이폰 설정 → 손쉬운 사용 → 콘텐츠 말하기 → 음성 → 영어 에서 고품질 목소리를 내려받으면 훨씬 자연스러워져요."
+              hint={
+                voiceMatches
+                  ? `지금 표기(${app.settings.dialect === "au" ? "호주식" : "미국식"}) 목소리 중에서 고릅니다. 아이폰 설정 → 손쉬운 사용 → 콘텐츠 말하기 → 음성 → 영어 에서 고품질 목소리를 내려받으면 훨씬 자연스러워져요.`
+                  : `이 기기에 ${app.settings.dialect === "au" ? "호주" : "미국"} 목소리가 없어 다른 영어 목소리로 읽고 있어요. 아이폰 설정 → 손쉬운 사용 → 콘텐츠 말하기 → 음성 → 영어(${app.settings.dialect === "au" ? "호주" : "미국"}) 에서 내려받으면 그 발음으로 바뀝니다.`
+              }
             >
               <div className="space-y-2">
                 <Select
@@ -400,7 +409,7 @@ export function SettingsDialog({
           <section className="py-1">
             <Row
               label="번역 엔진"
-              hint="내장 엔진과 MyMemory는 API 키가 필요 없어요."
+              hint="키 없이 쓰려면 내장 엔진·MyMemory. 고른 엔진의 한도가 끝나면 MyMemory → 내장 엔진 순으로 자동 전환돼요."
             >
               <Select
                 value={app.settings.translationProvider}
@@ -416,11 +425,13 @@ export function SettingsDialog({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="fallback">내장 엔진</SelectItem>
-                  <SelectItem value="gemini">Gemini (무료 키)</SelectItem>
-                  <SelectItem value="mymemory">MyMemory</SelectItem>
-                  <SelectItem value="deepl">DeepL</SelectItem>
+                  <SelectItem value="gemini">
+                    Gemini (무료 키 · 추천)
+                  </SelectItem>
+                  <SelectItem value="mymemory">MyMemory (키 없음)</SelectItem>
+                  <SelectItem value="papago">Papago (하루 1만 자)</SelectItem>
+                  <SelectItem value="deepl">DeepL (월 50만 자)</SelectItem>
                   <SelectItem value="google">Google</SelectItem>
-                  <SelectItem value="papago">Papago</SelectItem>
                 </SelectContent>
               </Select>
             </Row>
@@ -434,9 +445,11 @@ export function SettingsDialog({
                     placeholder={
                       app.settings.translationProvider === "papago"
                         ? "클라이언트ID:시크릿"
-                        : reusesLlmKey
-                          ? "아래 AI 대화 키를 함께 사용 중"
-                          : "API 키"
+                        : app.settings.translationProvider === "deepl"
+                          ? "DeepL 키 (무료 키는 :fx 로 끝나요)"
+                          : reusesLlmKey
+                            ? "아래 AI 대화 키를 함께 사용 중"
+                            : "API 키"
                     }
                   />
                   {app.settings.translationProvider === "gemini" && (
@@ -444,6 +457,13 @@ export function SettingsDialog({
                       {reusesLlmKey
                         ? "AI 대화에 넣은 Gemini 키를 그대로 쓰고 있어요."
                         : "aistudio.google.com 에서 카드 등록 없이 무료로 키를 받을 수 있어요."}
+                    </p>
+                  )}
+                  {(app.settings.translationProvider === "deepl" ||
+                    app.settings.translationProvider === "papago") && (
+                    <p className="text-[0.75rem] leading-relaxed text-muted-foreground">
+                      이 엔진은 브라우저에서 직접 부를 수 없어 앱(아이폰)에서만
+                      동작해요. 웹에서는 MyMemory·내장 엔진으로 넘어갑니다.
                     </p>
                   )}
                 </div>

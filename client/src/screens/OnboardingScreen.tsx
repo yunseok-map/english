@@ -73,7 +73,7 @@ export function OnboardingScreen({
           ? {
               takenAt: new Date().toISOString(),
               correct: res.correct,
-              total: 30,
+              total: questions.length,
             }
           : state.profile.placement,
         levelHistory: [

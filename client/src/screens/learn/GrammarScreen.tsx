@@ -58,7 +58,8 @@ function LessonDetail({
     .map((q, i) => ({ q, i }))
     .filter(({ q, i }) => answers[i] !== undefined && answers[i] !== q.answer);
 
-  const summaryMisses: SummaryMiss[] = wrongQuestions.map(({ q }) => ({
+  const summaryMisses: SummaryMiss[] = wrongQuestions.map(({ q, i }) => ({
+    id: String(i),
     label: q.q,
     detail: `정답: ${q.options[q.answer]}`,
   }));
@@ -125,7 +126,13 @@ function LessonDetail({
         onRetryMisses={
           summaryMisses.length > 0
             ? () => {
-                setAnswers({});
+                // 맞힌 문항은 그대로 두고 틀린 것만 비운다.
+                // 예전에는 전부 초기화해서 "틀린 것만"이라는 이름과 달랐다.
+                const kept: Record<number, number> = {};
+                lesson.quiz.forEach((q, i) => {
+                  if (answers[i] === q.answer) kept[i] = answers[i];
+                });
+                setAnswers(kept);
                 setSubmitted(false);
                 setShowSummary(false);
                 startedAt.current = Date.now();

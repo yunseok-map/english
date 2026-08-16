@@ -57,8 +57,18 @@ export function buildDailyRoute(state: AppState): DailyRoute {
 
   // 레벨이 1순위, 그다음이 출국 시점에 맞는 주제.
   // 두 달 전이면 서류·행정, 도착 직전이면 공항·교통이 앞으로 온다.
+  // 같은 단어가 A1·A2 양쪽에 실려 있는 경우가 있다(refund, shift …).
+  // id 만 보면 "새 단어"로 잡혀서 이미 외운 단어를 다시 배우게 된다.
+  // 이미 카드가 있는 표제어는 철자로도 걸러 낸다.
+  const known = new Set(
+    Object.values(state.srs)
+      .filter(c => c.source === "word")
+      .map(c => c.word.toLowerCase())
+  );
   const newWords = [...allWords]
-    .filter(w => !state.srs[`word-${w.id}`])
+    .filter(
+      w => !state.srs[`word-${w.id}`] && !known.has(w.word.us.toLowerCase())
+    )
     .sort((a, b) => {
       const byLevel = levelRank(a.level, level) - levelRank(b.level, level);
       if (byLevel !== 0) return byLevel;
