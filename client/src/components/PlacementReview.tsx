@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Check, X } from "lucide-react";
 import { Panel, Eyebrow, Empty } from "@/components/Panel";
-import { QuestionText } from "@/components/QuestionText";
+import { QuestionText, questionBody } from "@/components/QuestionText";
 import { SpeakLine } from "@/components/SpeakLine";
+import { Meaning } from "@/components/Meaning";
 import type { PlacementAnswer } from "@/types";
 
 const SECTION_LABEL: Record<PlacementAnswer["section"], string> = {
@@ -52,6 +53,9 @@ function ReviewCard({ answer }: { answer: PlacementAnswer }) {
           </dd>
         </div>
       </dl>
+
+      <Meaning en={questionBody(answer.question)} ko={answer.ko} />
+      <Meaning en={answer.expected} ko={answer.answerKo} label="정답 해석" />
 
       <p className="rounded-xl bg-muted/60 p-3 text-[0.875rem] leading-relaxed [overflow-wrap:anywhere]">
         {answer.explain}

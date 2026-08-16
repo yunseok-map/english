@@ -112,6 +112,10 @@ export type PlacementAnswer = {
   /** 정답 표기 */
   expected: string;
   correct: boolean;
+  /** 지문의 한국어 해석. 답을 낸 뒤에만 보여 준다. */
+  ko?: string;
+  /** 정답 문장의 한국어 해석. */
+  answerKo?: string;
   explain: string;
 };
 

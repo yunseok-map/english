@@ -10,6 +10,12 @@ import { useApp } from "@/state/context";
  *    삼켜서 어디가 빈칸인지 귀로 알 수 없다.
  *  - 오류찾기의 토막 구분(/)은 지운다. 문장으로 이어 읽어야 어색한 데가 들린다.
  */
+/** 지문에서 영어 문장 부분만 떼어 낸다. 없으면 빈 문자열. */
+export function questionBody(text: string) {
+  const at = text.indexOf("—");
+  return at < 0 ? "" : text.slice(at + 1).trim();
+}
+
 function speechText(body: string) {
   return body
     .replace(/_{2,}/g, " blank ")

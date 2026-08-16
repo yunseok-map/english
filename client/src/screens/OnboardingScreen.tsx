@@ -12,8 +12,9 @@ import { Input } from "@/components/ui/input";
 import { Panel, Eyebrow } from "@/components/Panel";
 import { BrandMark } from "@/components/art/BrandMark";
 import { PlacementReview } from "@/components/PlacementReview";
-import { QuestionText } from "@/components/QuestionText";
+import { QuestionText, questionBody } from "@/components/QuestionText";
 import { SpeakLine } from "@/components/SpeakLine";
+import { Meaning } from "@/components/Meaning";
 import { speakable } from "@/lib/autoSpeak";
 import { speak } from "@/lib/speech";
 import { useApp } from "@/state/context";
@@ -134,6 +135,8 @@ export function OnboardingScreen({
       given,
       expected: placementAnswerText(current),
       correct: isPlacementCorrect(current, given),
+      ko: current.ko,
+      answerKo: current.answerKo,
       explain: current.explain,
     });
   };
@@ -466,6 +469,14 @@ export function OnboardingScreen({
                   {graded.correct && current.kind === "fill" && (
                     <SpeakLine text={graded.expected} tone="primary" />
                   )}
+
+                  {/* 답을 낸 지금부터 해석을 보여 준다. */}
+                  <Meaning en={questionBody(graded.question)} ko={graded.ko} />
+                  <Meaning
+                    en={graded.expected}
+                    ko={graded.answerKo}
+                    label="정답 해석"
+                  />
 
                   <p className="rounded-xl bg-muted/60 p-3 text-[0.875rem] leading-relaxed [overflow-wrap:anywhere]">
                     {graded.explain}
