@@ -7,6 +7,10 @@ export const DEFAULT_SETTINGS: Settings = {
   rate: 0.85,
   dailyNewWords: 10,
   contractionMode: "paired",
+  haptics: true,
+  notifyEnabled: false,
+  notifyHour: 20,
+  speechEngine: "auto",
   translationProvider: "fallback",
   translationKey: "",
   llmProvider: "none",
@@ -16,7 +20,7 @@ export const DEFAULT_SETTINGS: Settings = {
 };
 
 export const DEFAULT_STATE: AppState = {
-  version: 2,
+  version: 3,
   profile: {
     name: "학습자",
     departureDate: "2027-02-05",
@@ -45,6 +49,7 @@ export const DEFAULT_STATE: AppState = {
     llmCalls: 0,
     llmMonth: "",
     studyDates: [],
+    sessions: [],
   },
 };
 

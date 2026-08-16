@@ -21,6 +21,11 @@ import { useApp } from "@/state/context";
 import { backupState, restoreState } from "@/lib/storage";
 import { DEFAULT_STATE } from "@/state/defaults";
 import { DIALECT_LABEL } from "@/lib/dialect";
+import { Switch } from "@/components/ui/switch";
+import { isNative } from "@/lib/native";
+import { speechEngineInUse } from "@/lib/speech";
+import { requestNotificationPermission } from "@/lib/notifications";
+import { haptic } from "@/lib/haptics";
 import type { Settings } from "@/types";
 
 function Row({
@@ -147,6 +152,7 @@ export function SettingsDialog({
                 <SelectContent>
                   <SelectItem value="normal">보통</SelectItem>
                   <SelectItem value="large">크게</SelectItem>
+                  <SelectItem value="xlarge">아주 크게</SelectItem>
                 </SelectContent>
               </Select>
             </Row>
@@ -202,6 +208,103 @@ export function SettingsDialog({
                   <SelectItem value="paired">축약형 + 원형</SelectItem>
                   <SelectItem value="short">축약형만</SelectItem>
                   <SelectItem value="full">원형만</SelectItem>
+                </SelectContent>
+              </Select>
+            </Row>
+            <Row
+              label="복습 알림"
+              hint={
+                isNative
+                  ? "복습이 밀리면 정해진 시각에 한 번 알려 줘요."
+                  : "알림은 설치형 앱에서만 동작해요."
+              }
+            >
+              <div className="flex justify-end">
+                <Switch
+                  checked={app.settings.notifyEnabled}
+                  disabled={!isNative}
+                  aria-label="복습 알림"
+                  onCheckedChange={async next => {
+                    if (next) {
+                      const granted = await requestNotificationPermission();
+                      if (!granted) {
+                        toast.error(
+                          "알림 권한이 필요해요. iPhone 설정에서 허용해 주세요."
+                        );
+                        return;
+                      }
+                    }
+                    set("notifyEnabled", next);
+                  }}
+                />
+              </div>
+            </Row>
+            {app.settings.notifyEnabled && (
+              <Row label="알림 시각">
+                <Select
+                  value={String(app.settings.notifyHour)}
+                  onValueChange={v => set("notifyHour", Number(v))}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[7, 8, 9, 12, 18, 19, 20, 21, 22].map(h => (
+                      <SelectItem key={h} value={String(h)}>
+                        {h < 12
+                          ? `오전 ${h}시`
+                          : h === 12
+                            ? "낮 12시"
+                            : `오후 ${h - 12}시`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Row>
+            )}
+            <Row
+              label="진동 피드백"
+              hint={
+                isNative
+                  ? "정답·오답에 짧게 진동해요."
+                  : "진동은 설치형 앱에서만 동작해요."
+              }
+            >
+              <div className="flex justify-end">
+                <Switch
+                  checked={app.settings.haptics}
+                  disabled={!isNative}
+                  aria-label="진동 피드백"
+                  onCheckedChange={next => {
+                    set("haptics", next);
+                    if (next) haptic.tap();
+                  }}
+                />
+              </div>
+            </Row>
+            <Row
+              label="음성 인식"
+              hint={
+                speechEngineInUse() === "native"
+                  ? "아이폰 내장 인식을 쓰는 중이에요."
+                  : speechEngineInUse() === "web"
+                    ? "브라우저 음성 인식을 쓰는 중이에요."
+                    : "이 환경에서는 음성 인식을 쓸 수 없어요."
+              }
+            >
+              <Select
+                value={app.settings.speechEngine}
+                onValueChange={v =>
+                  set("speechEngine", v as Settings["speechEngine"])
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="auto">자동</SelectItem>
+                  <SelectItem value="native">아이폰 내장</SelectItem>
+                  <SelectItem value="web">브라우저</SelectItem>
                 </SelectContent>
               </Select>
             </Row>

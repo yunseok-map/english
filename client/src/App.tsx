@@ -1,16 +1,53 @@
-import { useState } from "react";
+import { Suspense, lazy, useState } from "react";
 import { Toaster } from "sonner";
 import { useApp } from "@/state/context";
 import { AppHeader } from "@/components/AppHeader";
 import { BottomNav, type Screen } from "@/components/BottomNav";
-import { SettingsDialog } from "@/components/SettingsDialog";
 import { InstallHint } from "@/components/InstallHint";
-import { OnboardingScreen } from "@/screens/OnboardingScreen";
+import { Transition } from "@/components/Transition";
 import { HomeScreen } from "@/screens/HomeScreen";
-import { LearnScreen, type LearnSection } from "@/screens/learn/LearnScreen";
-import { ConverterScreen } from "@/screens/ConverterScreen";
-import { ChatScreen } from "@/screens/ChatScreen";
-import { ProfileScreen } from "@/screens/ProfileScreen";
+import type { LearnSection } from "@/screens/learn/LearnScreen";
+
+/**
+ * 홈은 즉시 필요하니 정적으로 두고, 나머지 화면과 설정 다이얼로그는 지연 로딩한다.
+ * 처음 화면이 뜨기까지 파싱해야 할 JS 가 그만큼 줄어든다.
+ */
+const LearnScreen = lazy(() =>
+  import("@/screens/learn/LearnScreen").then(m => ({ default: m.LearnScreen }))
+);
+const ConverterScreen = lazy(() =>
+  import("@/screens/ConverterScreen").then(m => ({
+    default: m.ConverterScreen,
+  }))
+);
+const ChatScreen = lazy(() =>
+  import("@/screens/ChatScreen").then(m => ({ default: m.ChatScreen }))
+);
+const ProfileScreen = lazy(() =>
+  import("@/screens/ProfileScreen").then(m => ({ default: m.ProfileScreen }))
+);
+const OnboardingScreen = lazy(() =>
+  import("@/screens/OnboardingScreen").then(m => ({
+    default: m.OnboardingScreen,
+  }))
+);
+const SettingsDialog = lazy(() =>
+  import("@/components/SettingsDialog").then(m => ({
+    default: m.SettingsDialog,
+  }))
+);
+
+function Spinner({ label = "불러오는 중" }: { label?: string }) {
+  return (
+    <div className="flex min-h-[40dvh] items-center justify-center">
+      <span
+        className="size-8 animate-spin rounded-full border-[3px] border-primary border-t-transparent"
+        role="status"
+        aria-label={label}
+      />
+    </div>
+  );
+}
 
 export default function App() {
   const { app, ready, dark } = useApp();
@@ -28,11 +65,20 @@ export default function App() {
     setRetest(true);
   };
 
+  const toaster = (
+    <Toaster
+      position="top-center"
+      theme={dark ? "dark" : "light"}
+      offset="calc(var(--safe-top) + 12px)"
+    />
+  );
+
   if (!ready) {
     return (
       <div className="flex min-h-dvh items-center justify-center bg-background">
         <span
           className="size-8 animate-spin rounded-full border-[3px] border-primary border-t-transparent"
+          role="status"
           aria-label="불러오는 중"
         />
       </div>
@@ -42,15 +88,13 @@ export default function App() {
   if (!app.profile.onboardingDone || retest) {
     return (
       <>
-        <OnboardingScreen
-          mode={retest ? "retest" : "initial"}
-          onDone={() => setRetest(false)}
-        />
-        <Toaster
-          position="top-center"
-          theme={dark ? "dark" : "light"}
-          offset="calc(var(--safe-top) + 12px)"
-        />
+        <Suspense fallback={<Spinner label="레벨 테스트 준비 중" />}>
+          <OnboardingScreen
+            mode={retest ? "retest" : "initial"}
+            onDone={() => setRetest(false)}
+          />
+        </Suspense>
+        {toaster}
       </>
     );
   }
@@ -59,37 +103,45 @@ export default function App() {
     <div className="min-h-dvh bg-background">
       <AppHeader onOpenSettings={() => setSettingsOpen(true)} />
       <main className="mx-auto w-full max-w-[640px] px-4 pb-[calc(88px+var(--safe-bottom))] pt-4">
-        {screen === "home" && <InstallHint />}
-        {screen === "home" && (
-          <HomeScreen
-            openLearn={openLearn}
-            openScreen={setScreen}
-            startRetest={startRetest}
-          />
-        )}
-        {screen === "learn" && (
-          <LearnScreen section={learnSection} onSection={setLearnSection} />
-        )}
-        {screen === "converter" && <ConverterScreen openLearn={openLearn} />}
-        {screen === "chat" && <ChatScreen />}
-        {screen === "profile" && (
-          <ProfileScreen
-            startRetest={startRetest}
-            openSettings={() => setSettingsOpen(true)}
-          />
-        )}
+        <Transition k={screen} direction="up">
+          <Suspense fallback={<Spinner />}>
+            {screen === "home" && (
+              <>
+                <InstallHint />
+                <HomeScreen
+                  openLearn={openLearn}
+                  openScreen={setScreen}
+                  startRetest={startRetest}
+                />
+              </>
+            )}
+            {screen === "learn" && (
+              <LearnScreen section={learnSection} onSection={setLearnSection} />
+            )}
+            {screen === "converter" && (
+              <ConverterScreen openLearn={openLearn} />
+            )}
+            {screen === "chat" && <ChatScreen />}
+            {screen === "profile" && (
+              <ProfileScreen
+                startRetest={startRetest}
+                openSettings={() => setSettingsOpen(true)}
+              />
+            )}
+          </Suspense>
+        </Transition>
       </main>
       <BottomNav screen={screen} onChange={setScreen} />
-      <SettingsDialog
-        open={settingsOpen}
-        onOpenChange={setSettingsOpen}
-        startRetest={startRetest}
-      />
-      <Toaster
-        position="top-center"
-        theme={dark ? "dark" : "light"}
-        offset="calc(var(--safe-top) + 12px)"
-      />
+      {settingsOpen && (
+        <Suspense fallback={null}>
+          <SettingsDialog
+            open={settingsOpen}
+            onOpenChange={setSettingsOpen}
+            startRetest={startRetest}
+          />
+        </Suspense>
+      )}
+      {toaster}
     </div>
   );
 }

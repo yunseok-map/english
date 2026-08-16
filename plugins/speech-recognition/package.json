@@ -1,0 +1,15 @@
+{
+  "name": "@wohol/speech-recognition",
+  "version": "1.0.0",
+  "description": "iOS 온디바이스 음성 인식(SFSpeechRecognizer) Capacitor 플러그인. JS 쪽은 앱에서 registerPlugin 으로 직접 부른다.",
+  "private": true,
+  "capacitor": {
+    "ios": {
+      "src": "ios"
+    }
+  },
+  "files": [
+    "ios",
+    "Package.swift"
+  ]
+}

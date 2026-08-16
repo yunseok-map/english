@@ -10,7 +10,13 @@ const NAV: Array<{ id: Screen; label: string; icon: typeof Home }> = [
   { id: "profile", label: "내 정보", icon: ClipboardCheck },
 ];
 
-export function BottomNav({ screen, onChange }: { screen: Screen; onChange: (next: Screen) => void }) {
+export function BottomNav({
+  screen,
+  onChange,
+}: {
+  screen: Screen;
+  onChange: (next: Screen) => void;
+}) {
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-card/95 pb-[var(--safe-bottom)] backdrop-blur-md">
       <div className="mx-auto grid h-16 w-full max-w-[640px] grid-cols-5">
@@ -26,7 +32,11 @@ export function BottomNav({ screen, onChange }: { screen: Screen; onChange: (nex
               }`}
             >
               <Icon size={21} strokeWidth={active ? 2.4 : 1.9} />
-              <span className={`text-[0.6875rem] leading-none ${active ? "font-semibold" : "font-medium"}`}>{label}</span>
+              <span
+                className={`text-[0.6875rem] leading-none ${active ? "font-semibold" : "font-medium"}`}
+              >
+                {label}
+              </span>
             </button>
           );
         })}

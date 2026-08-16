@@ -4,7 +4,12 @@ import { PronunciationScreen } from "@/screens/learn/PronunciationScreen";
 import { PacksScreen } from "@/screens/learn/PacksScreen";
 import { MistakesScreen } from "@/screens/learn/MistakesScreen";
 
-export type LearnSection = "words" | "grammar" | "pronunciation" | "packs" | "mistakes";
+export type LearnSection =
+  | "words"
+  | "grammar"
+  | "pronunciation"
+  | "packs"
+  | "mistakes";
 
 const TABS: Array<{ id: LearnSection; label: string }> = [
   { id: "words", label: "단어" },
@@ -14,12 +19,18 @@ const TABS: Array<{ id: LearnSection; label: string }> = [
   { id: "mistakes", label: "오답노트" },
 ];
 
-export function LearnScreen({ section, onSection }: { section: LearnSection; onSection: (next: LearnSection) => void }) {
+export function LearnScreen({
+  section,
+  onSection,
+}: {
+  section: LearnSection;
+  onSection: (next: LearnSection) => void;
+}) {
   return (
     <div className="space-y-4">
       <div className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div className="flex w-max gap-2 pb-1">
-          {TABS.map((tab) => (
+          {TABS.map(tab => (
             <button
               key={tab.id}
               onClick={() => onSection(tab.id)}

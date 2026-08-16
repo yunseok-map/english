@@ -142,12 +142,12 @@ export function ChatScreen() {
     setSending(false);
   };
 
-  const startVoiceInput = () => {
+  const startVoiceInput = async () => {
     if (!asrSupported)
       return toast(
         "이 기기에서는 음성 인식이 지원되지 않아요. 입력으로 연습해 보세요."
       );
-    const handle = startRecognition(asrLocale(app.settings.dialect), {
+    const handle = await startRecognition(asrLocale(app.settings.dialect), {
       onResult: text => setInput(text),
       onEnd: () => setListening(false),
       onError: () => {
@@ -281,7 +281,7 @@ export function ChatScreen() {
           />
           {asrSupported && (
             <button
-              onClick={startVoiceInput}
+              onClick={() => void startVoiceInput()}
               aria-label="영어 음성 입력"
               className={`absolute right-2 top-2 flex size-10 items-center justify-center rounded-lg transition-colors ${
                 listening

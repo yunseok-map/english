@@ -13,7 +13,7 @@ const APP_BACKGROUND = "#f6f7f5";
 const APP_BACKGROUND_DARK = "#101817";
 
 const xcassets = path.join(root, "ios", "App", "App", "Assets.xcassets");
-const rel = (file) => path.relative(root, file).replace(/\\/g, "/");
+const rel = file => path.relative(root, file).replace(/\\/g, "/");
 
 const targets = [
   { file: path.join(iconsDir, "icon-192.png"), size: 192 },
@@ -32,9 +32,20 @@ const maskableSize = 512;
 const inner = Math.round(maskableSize * 0.8);
 const innerBuffer = await sharp(logo).resize(inner, inner).png().toBuffer();
 await sharp({
-  create: { width: maskableSize, height: maskableSize, channels: 4, background: BACKGROUND },
+  create: {
+    width: maskableSize,
+    height: maskableSize,
+    channels: 4,
+    background: BACKGROUND,
+  },
 })
-  .composite([{ input: innerBuffer, top: (maskableSize - inner) / 2, left: (maskableSize - inner) / 2 }])
+  .composite([
+    {
+      input: innerBuffer,
+      top: (maskableSize - inner) / 2,
+      left: (maskableSize - inner) / 2,
+    },
+  ])
   .png()
   .toFile(path.join(iconsDir, "maskable-512.png"));
 console.log("✓ client/public/icons/maskable-512.png (512px, maskable)");
@@ -44,17 +55,28 @@ console.log("✓ client/public/icons/maskable-512.png (512px, maskable)");
 const appIconDir = path.join(xcassets, "AppIcon.appiconset");
 fs.mkdirSync(appIconDir, { recursive: true });
 const appIconFile = path.join(appIconDir, "AppIcon-512@2x.png");
-await sharp(logo).resize(1024, 1024).flatten({ background: BACKGROUND }).png().toFile(appIconFile);
+await sharp(logo)
+  .resize(1024, 1024)
+  .flatten({ background: BACKGROUND })
+  .png()
+  .toFile(appIconFile);
 fs.writeFileSync(
   path.join(appIconDir, "Contents.json"),
   `${JSON.stringify(
     {
-      images: [{ filename: "AppIcon-512@2x.png", idiom: "universal", platform: "ios", size: "1024x1024" }],
+      images: [
+        {
+          filename: "AppIcon-512@2x.png",
+          idiom: "universal",
+          platform: "ios",
+          size: "1024x1024",
+        },
+      ],
       info: { author: "xcode", version: 1 },
     },
     null,
-    2,
-  )}\n`,
+    2
+  )}\n`
 );
 console.log(`✓ ${rel(appIconFile)} (1024px, 알파 없음)`);
 
@@ -62,14 +84,19 @@ console.log(`✓ ${rel(appIconFile)} (1024px, 알파 없음)`);
 const splashSize = 2732;
 // composite offset은 정수여야 하므로 로고 크기를 짝수로 맞춘다.
 const splashLogo = Math.round((splashSize * 0.22) / 2) * 2;
-const splashLogoBuffer = await sharp(logo).resize(splashLogo, splashLogo).png().toBuffer();
+const splashLogoBuffer = await sharp(logo)
+  .resize(splashLogo, splashLogo)
+  .png()
+  .toBuffer();
 const splashOffset = (splashSize - splashLogo) / 2;
 
 async function renderSplash(background) {
   return sharp({
     create: { width: splashSize, height: splashSize, channels: 4, background },
   })
-    .composite([{ input: splashLogoBuffer, top: splashOffset, left: splashOffset }])
+    .composite([
+      { input: splashLogoBuffer, top: splashOffset, left: splashOffset },
+    ])
     .flatten({ background })
     .png()
     .toBuffer();
@@ -85,19 +112,33 @@ console.log("✓ assets/splash.png, assets/splash-dark.png (2732px)");
 // Capacitor가 쓰는 Splash 이미지셋. 1x/2x/3x 세 벌 + 다크 대응.
 const splashDir = path.join(xcassets, "Splash.imageset");
 fs.mkdirSync(splashDir, { recursive: true });
-const splashNames = ["splash-2732x2732-2.png", "splash-2732x2732-1.png", "splash-2732x2732.png"];
-const splashDarkNames = ["splash-dark-2732x2732-2.png", "splash-dark-2732x2732-1.png", "splash-dark-2732x2732.png"];
+const splashNames = [
+  "splash-2732x2732-2.png",
+  "splash-2732x2732-1.png",
+  "splash-2732x2732.png",
+];
+const splashDarkNames = [
+  "splash-dark-2732x2732-2.png",
+  "splash-dark-2732x2732-1.png",
+  "splash-dark-2732x2732.png",
+];
 const scales = ["1x", "2x", "3x"];
 
-for (const name of splashNames) await sharp(splashLight).toFile(path.join(splashDir, name));
-for (const name of splashDarkNames) await sharp(splashDark).toFile(path.join(splashDir, name));
+for (const name of splashNames)
+  await sharp(splashLight).toFile(path.join(splashDir, name));
+for (const name of splashDarkNames)
+  await sharp(splashDark).toFile(path.join(splashDir, name));
 
 fs.writeFileSync(
   path.join(splashDir, "Contents.json"),
   `${JSON.stringify(
     {
       images: [
-        ...scales.map((scale, i) => ({ idiom: "universal", filename: splashNames[i], scale })),
+        ...scales.map((scale, i) => ({
+          idiom: "universal",
+          filename: splashNames[i],
+          scale,
+        })),
         ...scales.map((scale, i) => ({
           idiom: "universal",
           appearances: [{ appearance: "luminosity", value: "dark" }],
@@ -108,7 +149,7 @@ fs.writeFileSync(
       info: { version: 1, author: "xcode" },
     },
     null,
-    2,
-  )}\n`,
+    2
+  )}\n`
 );
 console.log("✓ ios/App/App/Assets.xcassets/Splash.imageset (라이트/다크)");

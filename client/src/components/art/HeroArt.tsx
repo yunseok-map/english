@@ -19,8 +19,20 @@ export function HeroArt({ className }: { className?: string }) {
         strokeDasharray="1 8"
       />
       <circle cx="24" cy="76" r="5" fill="currentColor" fillOpacity="0.85" />
-      <circle cx="24" cy="76" r="9" fill="none" stroke="currentColor" strokeOpacity="0.3" strokeWidth="1.5" />
-      <path d="M288 20l14 7-14 7 3.5-7z" fill="currentColor" fillOpacity="0.9" />
+      <circle
+        cx="24"
+        cy="76"
+        r="9"
+        fill="none"
+        stroke="currentColor"
+        strokeOpacity="0.3"
+        strokeWidth="1.5"
+      />
+      <path
+        d="M288 20l14 7-14 7 3.5-7z"
+        fill="currentColor"
+        fillOpacity="0.9"
+      />
       <circle cx="176" cy="24" r="3" fill="currentColor" fillOpacity="0.5" />
     </svg>
   );

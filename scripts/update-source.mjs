@@ -69,7 +69,10 @@ if (fs.existsSync(sourcePath)) {
   try {
     const prev = JSON.parse(fs.readFileSync(sourcePath, "utf8"));
     const prevVersions = prev?.apps?.[0]?.versions ?? [];
-    app.versions = [versionEntry, ...prevVersions.filter(v => v.version !== version)].slice(0, 20);
+    app.versions = [
+      versionEntry,
+      ...prevVersions.filter(v => v.version !== version),
+    ].slice(0, 20);
   } catch {
     /* 손상된 파일은 새로 만든다. */
   }
@@ -79,7 +82,8 @@ const source = {
   name: "yunseok 앱 저장소",
   identifier: "com.yunseok.source",
   subtitle: "워홀 영어 훈련",
-  description: "개인용 앱 저장소입니다. SideStore에 이 주소를 등록하면 케이블 없이 설치·업데이트할 수 있어요.",
+  description:
+    "개인용 앱 저장소입니다. SideStore에 이 주소를 등록하면 케이블 없이 설치·업데이트할 수 있어요.",
   iconURL: `${RAW}/client/public/icons/icon-512.png`,
   headerURL: `${RAW}/client/public/icons/icon-512.png`,
   website: `https://github.com/${REPO}`,
@@ -90,5 +94,7 @@ const source = {
 
 fs.mkdirSync(path.dirname(sourcePath), { recursive: true });
 fs.writeFileSync(sourcePath, `${JSON.stringify(source, null, 2)}\n`);
-console.log(`✓ source/apps.json 갱신 — v${version} (${(size / 1048576).toFixed(2)}MB)`);
+console.log(
+  `✓ source/apps.json 갱신 — v${version} (${(size / 1048576).toFixed(2)}MB)`
+);
 console.log(`  다운로드: ${downloadURL}`);

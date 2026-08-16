@@ -1,16 +1,17 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Check, CheckCircle2, ChevronRight, Volume2 } from "lucide-react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Panel, Eyebrow, Empty } from "@/components/Panel";
 import { useApp } from "@/state/context";
-import { GRAMMAR_LESSONS } from "@/data";
+import { lessons as allLessons } from "@/data";
 import type { GrammarLesson } from "@/data/types";
 import { dt } from "@/lib/dialect";
-import { recordStudy } from "@/lib/engine";
+import { recordSession, recordStudy } from "@/lib/engine";
+import { haptic } from "@/lib/haptics";
+import { SessionSummary, type SummaryMiss } from "@/components/SessionSummary";
 import { speak } from "@/lib/speech";
 import { LEVEL_LABEL } from "@/lib/level";
-import { routeTaskKey } from "@/lib/route";
+import { noteMistake, routeTaskKey } from "@/lib/route";
 
 function LessonDetail({
   lesson,
@@ -23,47 +24,98 @@ function LessonDetail({
   const dialect = app.settings.dialect;
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [submitted, setSubmitted] = useState(false);
+  const [showSummary, setShowSummary] = useState(false);
+  const startedAt = useRef(Date.now());
   const completed = app.completedLessons.includes(lesson.id);
 
   const score = lesson.quiz.filter((q, i) => answers[i] === q.answer).length;
   const allAnswered = lesson.quiz.every((_, i) => answers[i] !== undefined);
 
+  // 틀린 문항만 오답 노트로 보낸다. 강의 제목만 담으면 나중에 뭘 틀렸는지 알 수 없다.
+  const wrongQuestions = lesson.quiz
+    .map((q, i) => ({ q, i }))
+    .filter(({ q, i }) => answers[i] !== undefined && answers[i] !== q.answer);
+
+  const summaryMisses: SummaryMiss[] = wrongQuestions.map(({ q }) => ({
+    label: q.q,
+    detail: `정답: ${q.options[q.answer]}`,
+  }));
+
   const submit = () => {
     setSubmitted(true);
     const passed = score >= 4;
-    update(state => ({
-      ...state,
-      completedLessons:
-        passed && !completed
-          ? [...state.completedLessons, lesson.id]
-          : state.completedLessons,
-      completedTasks:
-        passed && !state.completedTasks.includes(routeTaskKey("lesson"))
-          ? [...state.completedTasks, routeTaskKey("lesson")]
-          : state.completedTasks,
-      stats: recordStudy(state.stats, {
-        grammarCorrect: state.stats.grammarCorrect + score,
-        grammarTotal: state.stats.grammarTotal + lesson.quiz.length,
-      }),
-      mistakes: passed
-        ? state.mistakes
-        : [
-            {
-              id: `g-${Date.now()}`,
-              type: "grammar" as const,
-              label: lesson.title,
-              count: 1,
-              nextReview: Date.now() + 3 * 86400000,
-            },
-            ...state.mistakes,
-          ],
-    }));
-    toast(
-      passed
-        ? `통과! ${score}/${lesson.quiz.length} 정답이에요.`
-        : `${score}/${lesson.quiz.length} — 4개 이상 맞히면 완료돼요.`
-    );
+    const seconds = (Date.now() - startedAt.current) / 1000;
+    if (passed) haptic.success();
+    else haptic.error();
+
+    update(state => {
+      let mistakes = state.mistakes;
+      for (const { q, i } of wrongQuestions) {
+        mistakes = noteMistake(
+          { ...state, mistakes },
+          {
+            id: `grammar-${lesson.id}-${i}`,
+            type: "grammar",
+            label: q.q,
+            answer: q.options[q.answer],
+            hint: q.explain,
+          }
+        );
+      }
+      return {
+        ...state,
+        completedLessons:
+          passed && !completed
+            ? [...state.completedLessons, lesson.id]
+            : state.completedLessons,
+        completedTasks:
+          passed && !state.completedTasks.includes(routeTaskKey("lesson"))
+            ? [...state.completedTasks, routeTaskKey("lesson")]
+            : state.completedTasks,
+        stats: recordSession(
+          recordStudy(state.stats, {
+            grammarCorrect: state.stats.grammarCorrect + score,
+            grammarTotal: state.stats.grammarTotal + lesson.quiz.length,
+          }),
+          {
+            kind: "grammar",
+            total: lesson.quiz.length,
+            correct: score,
+            seconds,
+          }
+        ),
+        mistakes,
+      };
+    });
+    setShowSummary(true);
   };
+
+  if (showSummary) {
+    return (
+      <SessionSummary
+        title={lesson.title}
+        correct={score}
+        total={lesson.quiz.length}
+        seconds={(Date.now() - startedAt.current) / 1000}
+        streak={app.stats.streak}
+        misses={summaryMisses}
+        onRetryMisses={
+          summaryMisses.length > 0
+            ? () => {
+                setAnswers({});
+                setSubmitted(false);
+                setShowSummary(false);
+                startedAt.current = Date.now();
+              }
+            : undefined
+        }
+        onDone={() => {
+          setShowSummary(false);
+          onBack();
+        }}
+      />
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -199,20 +251,20 @@ export function GrammarScreen() {
       )
       .map(level => ({
         level,
-        lessons: GRAMMAR_LESSONS.filter(l => l.level === level),
+        lessons: allLessons().filter(l => l.level === level),
       }))
       .filter(g => g.lessons.length > 0);
   }, [app.profile.level]);
 
   const selected = selectedId
-    ? GRAMMAR_LESSONS.find(l => l.id === selectedId)
+    ? allLessons().find(l => l.id === selectedId)
     : null;
   if (selected)
     return (
       <LessonDetail lesson={selected} onBack={() => setSelectedId(null)} />
     );
 
-  if (GRAMMAR_LESSONS.length === 0)
+  if (allLessons().length === 0)
     return (
       <Empty title="강의 준비 중" text="문법 강의 콘텐츠를 준비하고 있어요." />
     );

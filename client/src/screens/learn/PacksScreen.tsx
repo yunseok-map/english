@@ -7,7 +7,7 @@ import { useApp } from "@/state/context";
 import { PACKS } from "@/data";
 import type { ConversationPack } from "@/data/types";
 import { dt } from "@/lib/dialect";
-import { recordStudy } from "@/lib/engine";
+import { createSentenceCard, recordStudy } from "@/lib/engine";
 import { speak } from "@/lib/speech";
 import { LEVEL_LABEL, LEVEL_ORDER } from "@/lib/level";
 import { routeTaskKey } from "@/lib/route";
@@ -39,16 +39,11 @@ function PackDetail({
       ],
       srs: {
         ...state.srs,
-        [`sentence-${Date.now()}`]: {
-          id: `sentence-${Date.now()}`,
-          word: en,
-          meaning: ko,
-          dueAt: Date.now() + 86400000,
-          interval: 1,
-          ease: 2.5,
-          repetitions: 0,
-          source: "sentence" as const,
-        },
+        [`sentence-${Date.now()}`]: createSentenceCard(
+          `sentence-${Date.now()}`,
+          en,
+          ko
+        ),
       },
     }));
     toast.success("내 문장장과 복습 카드에 저장했어요.");

@@ -42,7 +42,8 @@ export const GRAMMAR_A2: GrammarLesson[] = [
         q: "빈칸에 알맞은 것은? — I ___ my wallet on the bus yesterday.",
         options: ["lose", "losed", "lost", "have lose"],
         answer: 2,
-        explain: "yesterday가 있으므로 과거형 lost를 써요. lose는 불규칙 동사예요.",
+        explain:
+          "yesterday가 있으므로 과거형 lost를 써요. lose는 불규칙 동사예요.",
       },
       {
         q: "다음 중 올바른 문장은?",
@@ -53,7 +54,8 @@ export const GRAMMAR_A2: GrammarLesson[] = [
           "He paid the rent on time.",
         ],
         answer: 3,
-        explain: "pay의 과거형 paid가 맞아요. did/didn't 뒤에는 동사원형, teach의 과거형은 taught예요.",
+        explain:
+          "pay의 과거형 paid가 맞아요. did/didn't 뒤에는 동사원형, teach의 과거형은 taught예요.",
       },
       {
         q: "빈칸에 알맞은 것은? — ___ they finish the night shift?",
@@ -65,7 +67,8 @@ export const GRAMMAR_A2: GrammarLesson[] = [
         q: "'buy'의 과거형은?",
         options: ["buyed", "bought", "brought", "buys"],
         answer: 1,
-        explain: "buy의 과거형은 bought예요. brought는 bring의 과거형이니 헷갈리지 마세요.",
+        explain:
+          "buy의 과거형은 bought예요. brought는 bring의 과거형이니 헷갈리지 마세요.",
       },
     ],
   },
@@ -115,13 +118,15 @@ export const GRAMMAR_A2: GrammarLesson[] = [
           "I'm will move out next month.",
         ],
         answer: 1,
-        explain: "미리 정한 계획에는 be going to가 자연스러워요. will 뒤에 to는 붙지 않아요.",
+        explain:
+          "미리 정한 계획에는 be going to가 자연스러워요. will 뒤에 to는 붙지 않아요.",
       },
       {
         q: "빈칸에 알맞은 것은? — She ___ start her new job on Monday. (확정된 계획)",
         options: ["is going to", "will to", "going to", "is go to"],
         answer: 0,
-        explain: "확정된 계획이므로 is going to를 써요. be동사를 빠뜨리면 안 돼요.",
+        explain:
+          "확정된 계획이므로 is going to를 써요. be동사를 빠뜨리면 안 돼요.",
       },
       {
         q: "다음 중 올바른 문장은?",
@@ -132,7 +137,8 @@ export const GRAMMAR_A2: GrammarLesson[] = [
           "They are going to went home.",
         ],
         answer: 2,
-        explain: "will 뒤에는 동사원형이 와요. I'll help가 맞고, will rains나 going to went는 틀려요.",
+        explain:
+          "will 뒤에는 동사원형이 와요. I'll help가 맞고, will rains나 going to went는 틀려요.",
       },
       {
         q: "빈칸에 알맞은 것은? — We're out of milk. I ___ buy some on my way home. (즉석 결정)",
@@ -184,19 +190,22 @@ export const GRAMMAR_A2: GrammarLesson[] = [
         q: "빈칸에 알맞은 것은? — He ___ been to New Zealand twice.",
         options: ["have", "has", "is", "was to"],
         answer: 1,
-        explain: "3인칭 단수 he에는 has를 써요. has been to는 '가 본 적 있다'는 경험이에요.",
+        explain:
+          "3인칭 단수 he에는 has를 써요. has been to는 '가 본 적 있다'는 경험이에요.",
       },
       {
         q: "'eat'의 과거분사(p.p.)는?",
         options: ["ate", "eaten", "eated", "eats"],
         answer: 1,
-        explain: "eat의 3단 변화는 eat-ate-eaten이에요. 현재완료에는 eaten을 써요.",
+        explain:
+          "eat의 3단 변화는 eat-ate-eaten이에요. 현재완료에는 eaten을 써요.",
       },
       {
         q: "빈칸에 알맞은 것은? — ___ you finished the report yet?",
         options: ["Do", "Did", "Have", "Are"],
         answer: 2,
-        explain: "finished(과거분사)와 yet이 있으므로 현재완료 의문문 Have you ~?가 맞아요.",
+        explain:
+          "finished(과거분사)와 yet이 있으므로 현재완료 의문문 Have you ~?가 맞아요.",
       },
       {
         q: "빈칸에 알맞은 것은? — We have known each other ___ last summer.",
@@ -236,7 +245,9 @@ export const GRAMMAR_A2: GrammarLesson[] = [
         ko: "이 커피는 이 도시에서 마셔 본 것 중 최고예요.",
       },
       {
-        en: { us: "Renting a bike is more convenient than taking the bus here." },
+        en: {
+          us: "Renting a bike is more convenient than taking the bus here.",
+        },
         ko: "여기서는 자전거를 빌리는 게 버스를 타는 것보다 더 편리해요.",
       },
     ],
@@ -249,9 +260,15 @@ export const GRAMMAR_A2: GrammarLesson[] = [
       },
       {
         q: "빈칸에 알맞은 것은? — This laptop is ___ than mine.",
-        options: ["expensiver", "more expensive", "most expensive", "expensive"],
+        options: [
+          "expensiver",
+          "more expensive",
+          "most expensive",
+          "expensive",
+        ],
         answer: 1,
-        explain: "expensive처럼 긴 형용사는 more를 앞에 붙여 비교급을 만들어요.",
+        explain:
+          "expensive처럼 긴 형용사는 more를 앞에 붙여 비교급을 만들어요.",
       },
       {
         q: "'good'의 최상급은?",
@@ -274,7 +291,8 @@ export const GRAMMAR_A2: GrammarLesson[] = [
           "It was the most cheap option.",
         ],
         answer: 0,
-        explain: "good의 비교급 better + than이 맞아요. busy는 busier, 비교에는 that이 아니라 than, cheap은 cheapest예요.",
+        explain:
+          "good의 비교급 better + than이 맞아요. busy는 busier, 비교에는 that이 아니라 than, cheap은 cheapest예요.",
       },
     ],
   },
@@ -330,7 +348,8 @@ export const GRAMMAR_A2: GrammarLesson[] = [
         q: "빈칸에 알맞은 것은? — He ___ eats breakfast. He just drinks coffee. (전혀 ~않다)",
         options: ["always", "often", "never", "sometimes"],
         answer: 2,
-        explain: "'전혀 먹지 않는다'는 뜻이므로 never를 써요. never 자체가 부정이라 don't는 필요 없어요.",
+        explain:
+          "'전혀 먹지 않는다'는 뜻이므로 never를 써요. never 자체가 부정이라 don't는 필요 없어요.",
       },
       {
         q: "'얼마나 자주 ~해요?'라고 물을 때 쓰는 표현은?",
@@ -342,7 +361,8 @@ export const GRAMMAR_A2: GrammarLesson[] = [
         q: "다음 중 빈도가 가장 높은 부사는?",
         options: ["sometimes", "often", "always", "rarely"],
         answer: 2,
-        explain: "always(항상)가 빈도가 가장 높아요. always > often > sometimes > rarely 순서예요.",
+        explain:
+          "always(항상)가 빈도가 가장 높아요. always > often > sometimes > rarely 순서예요.",
       },
     ],
   },
@@ -423,7 +443,8 @@ export const GRAMMAR_A2: GrammarLesson[] = [
           "He'd likes a coffee.",
         ],
         answer: 1,
-        explain: "would like 뒤에 동사가 오면 to부정사(to pay)를 써요. -ing형이나 likes는 틀려요.",
+        explain:
+          "would like 뒤에 동사가 오면 to부정사(to pay)를 써요. -ing형이나 likes는 틀려요.",
       },
     ],
     pattern: /\bwould\s+(you\s+)?like\b|'d\s+like\b/i,
@@ -474,13 +495,15 @@ export const GRAMMAR_A2: GrammarLesson[] = [
           "You would not smoke here.",
         ],
         answer: 1,
-        explain: "금지는 must not으로 표현해요. don't have to는 '안 해도 된다'는 뜻이에요.",
+        explain:
+          "금지는 must not으로 표현해요. don't have to는 '안 해도 된다'는 뜻이에요.",
       },
       {
         q: "'안 해도 돼요'(불필요)를 뜻하는 것은?",
         options: ["must not", "don't have to", "have to", "should to"],
         answer: 1,
-        explain: "don't have to는 의무가 없다는 뜻이에요. must not(금지)과 정반대이니 주의하세요.",
+        explain:
+          "don't have to는 의무가 없다는 뜻이에요. must not(금지)과 정반대이니 주의하세요.",
       },
       {
         q: "빈칸에 알맞은 것은? — She ___ to leave early yesterday. (과거)",
@@ -497,7 +520,8 @@ export const GRAMMAR_A2: GrammarLesson[] = [
           "He must to go now.",
         ],
         answer: 2,
-        explain: "3인칭 단수는 has to를 써요. must 뒤에는 to 없이 동사원형이 와요.",
+        explain:
+          "3인칭 단수는 has to를 써요. must 뒤에는 to 없이 동사원형이 와요.",
       },
     ],
     pattern: /\b(have to|has to|had to|must)\b/i,
@@ -549,7 +573,8 @@ export const GRAMMAR_A2: GrammarLesson[] = [
         q: "빈칸에 알맞은 것은? — Would you mind ___ me a hand?",
         options: ["give", "to give", "giving", "gave"],
         answer: 2,
-        explain: "mind 뒤에는 동명사(-ing)가 와요. Would you mind -ing?는 공손한 부탁 표현이에요.",
+        explain:
+          "mind 뒤에는 동명사(-ing)가 와요. Would you mind -ing?는 공손한 부탁 표현이에요.",
       },
       {
         q: "빈칸에 알맞은 것은? — They decided ___ closer to work.",
@@ -566,7 +591,8 @@ export const GRAMMAR_A2: GrammarLesson[] = [
           "He kept talking during the break.",
         ],
         answer: 3,
-        explain: "keep은 동명사를 데려와서 kept talking이 맞아요. finish도 -ing, hope는 to부정사를 써요.",
+        explain:
+          "keep은 동명사를 데려와서 kept talking이 맞아요. finish도 -ing, hope는 to부정사를 써요.",
       },
     ],
   },
@@ -631,7 +657,8 @@ export const GRAMMAR_A2: GrammarLesson[] = [
           "So I was tired, because I slept.",
         ],
         answer: 1,
-        explain: "because와 so는 한 문장에서 같이 쓰지 않아요. 둘 중 하나만 골라 쓰세요.",
+        explain:
+          "because와 so는 한 문장에서 같이 쓰지 않아요. 둘 중 하나만 골라 쓰세요.",
       },
       {
         q: "'나는 배가 고팠지만 아무것도 먹지 않았다'를 영어로 하면?",
@@ -687,7 +714,8 @@ export const GRAMMAR_A2: GrammarLesson[] = [
         q: "빈칸에 알맞은 것은? — I don't have ___ questions.",
         options: ["some", "any", "a", "much"],
         answer: 1,
-        explain: "부정문에서는 any를 써요. not ~ any는 '하나도 없다'는 뜻이에요.",
+        explain:
+          "부정문에서는 any를 써요. not ~ any는 '하나도 없다'는 뜻이에요.",
       },
       {
         q: "빈칸에 알맞은 것은? — Is there ___ milk left?",
@@ -762,7 +790,12 @@ export const GRAMMAR_A2: GrammarLesson[] = [
       },
       {
         q: "가격을 물을 때 쓰는 표현은?",
-        options: ["How much is it?", "How many is it?", "How long is it?", "How often is it?"],
+        options: [
+          "How much is it?",
+          "How many is it?",
+          "How long is it?",
+          "How often is it?",
+        ],
         answer: 0,
         explain: "가격은 How much is it?으로 물어요.",
       },
@@ -781,7 +814,8 @@ export const GRAMMAR_A2: GrammarLesson[] = [
           "How much people live here?",
         ],
         answer: 2,
-        explain: "shifts는 셀 수 있는 복수 명사라 How many가 맞아요. money에는 much, bags와 people에는 many를 써야 해요.",
+        explain:
+          "shifts는 셀 수 있는 복수 명사라 How many가 맞아요. money에는 much, bags와 people에는 many를 써야 해요.",
       },
     ],
   },
@@ -835,7 +869,8 @@ export const GRAMMAR_A2: GrammarLesson[] = [
         q: "빈칸에 알맞은 것은? — They didn't pay the deposit, ___?",
         options: ["didn't they", "did they", "don't they", "do they"],
         answer: 1,
-        explain: "부정문에는 긍정 꼬리를 붙여요. didn't ~, did they?가 짝이에요.",
+        explain:
+          "부정문에는 긍정 꼬리를 붙여요. didn't ~, did they?가 짝이에요.",
       },
       {
         q: "빈칸에 알맞은 것은? — You can drive, ___?",
@@ -852,7 +887,8 @@ export const GRAMMAR_A2: GrammarLesson[] = [
           "It's cold today, aren't it?",
         ],
         answer: 0,
-        explain: "It's(긍정 be동사) 문장에는 isn't it?이 와요. 스몰토크 단골 표현이에요.",
+        explain:
+          "It's(긍정 be동사) 문장에는 isn't it?이 와요. 스몰토크 단골 표현이에요.",
       },
     ],
   },

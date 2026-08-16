@@ -4,11 +4,18 @@ export type Level = "A1" | "A2" | "B1";
 
 export type Settings = {
   theme: "light" | "dark" | "system";
-  fontScale: "normal" | "large";
+  fontScale: "normal" | "large" | "xlarge";
   dialect: Dialect;
   rate: number;
   dailyNewWords: number;
   contractionMode: "paired" | "short" | "full";
+  /** 정답·오답에 진동 피드백을 준다. (네이티브 앱에서만 동작) */
+  haptics: boolean;
+  /** 복습 알림 사용 여부와 시각(0~23시). */
+  notifyEnabled: boolean;
+  notifyHour: number;
+  /** 음성 인식 엔진. auto = 네이티브 우선, 없으면 브라우저. */
+  speechEngine: "auto" | "native" | "web";
   translationProvider:
     | "fallback"
     | "gemini"
@@ -23,14 +30,25 @@ export type Settings = {
   monthlyLimit: number;
 };
 
+/** FSRS 카드 상태. new → learning → review, 실패하면 relearning. */
+export type CardState = "new" | "learning" | "review" | "relearning";
+
 export type SrsCard = {
   id: string;
   word: string;
   meaning: string;
   dueAt: number;
+  /** 다음 복습까지 예정된 일수. 승급 판정과 화면 표시에 쓴다. */
   interval: number;
-  ease: number;
-  repetitions: number;
+  /** FSRS 기억 안정성(일). 클수록 오래 간다. */
+  stability: number;
+  /** FSRS 난이도 1~10. 클수록 자주 봐야 한다. */
+  difficulty: number;
+  reps: number;
+  lapses: number;
+  /** 마지막 복습 시각(ms). 0이면 아직 안 봤다. */
+  lastReview: number;
+  state: CardState;
   source: "word" | "sentence" | "mistake";
 };
 
@@ -47,6 +65,9 @@ export type Mistake = {
   label: string;
   count: number;
   nextReview: number;
+  /** 오늘의 루트에 다시 낼 때 쓰는 원본 정보 */
+  answer?: string;
+  hint?: string;
 };
 export type ChatMessage = {
   id: string;
@@ -76,6 +97,26 @@ export type Profile = {
   onboardingDone: boolean;
   placement?: PlacementRecord;
   levelHistory: LevelEvent[];
+  /** 승급 제안을 마지막으로 띄운 날("YYYY-MM-DD"). 하루에 한 번만 권한다. */
+  promotionOfferedOn?: string;
+};
+
+/** 한 번의 학습 세션 결과. 요약 화면과 추이 그래프에 쓴다. */
+export type SessionKind =
+  | "words"
+  | "review"
+  | "grammar"
+  | "pack"
+  | "dictation"
+  | "pronunciation"
+  | "speak";
+
+export type SessionRecord = {
+  at: number;
+  kind: SessionKind;
+  total: number;
+  correct: number;
+  seconds: number;
 };
 
 export type Stats = {
@@ -91,10 +132,12 @@ export type Stats = {
   llmMonth: string;
   /** 학습한 날짜("YYYY-MM-DD") 최근 60일. 잔디/연속 학습 표시에 쓴다. */
   studyDates: string[];
+  /** 최근 세션 30개. */
+  sessions: SessionRecord[];
 };
 
 export type AppState = {
-  version: 2;
+  version: 3;
   profile: Profile;
   settings: Settings;
   srs: Record<string, SrsCard>;

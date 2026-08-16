@@ -1,6 +1,13 @@
-import type { AppState, Dialect, SrsCard, Tone } from "@/types";
+import type {
+  AppState,
+  Dialect,
+  SessionKind,
+  SessionRecord,
+  SrsCard,
+  Tone,
+} from "@/types";
 import type { GrammarLesson, WordEntry } from "@/data/types";
-import { CONTRACTIONS, GRAMMAR_LESSONS, WORDS } from "@/data";
+import { CONTRACTIONS, dataRevision, lessons, words } from "@/data";
 import { dt } from "@/lib/dialect";
 
 export function daysTo(date: string) {
@@ -39,15 +46,6 @@ export function levenshtein(a: string, b: string) {
             );
   return matrix[b.length][a.length];
 }
-export function pronunciationScore(target: string, spoken: string) {
-  const max = Math.max(target.length, spoken.length, 1);
-  return Math.max(
-    0,
-    Math.round(
-      (1 - levenshtein(normalize(target), normalize(spoken)) / max) * 100
-    )
-  );
-}
 
 export function dayKey(offsetDays = 0) {
   return new Date(Date.now() - offsetDays * 86400000)
@@ -84,38 +82,20 @@ export function recordStudy(
   };
 }
 
-// ---- SRS (SM-2 변형) ----
-export function scheduleCard(
-  card: SrsCard,
-  grade: 0 | 1 | 2 | 3 | 4 | 5
-): SrsCard {
-  let { interval, ease, repetitions } = card;
-  if (grade < 3) {
-    repetitions = 0;
-    interval = 1;
-    ease = Math.max(1.3, ease - 0.2);
-  } else {
-    repetitions += 1;
-    interval =
-      repetitions === 1
-        ? 1
-        : repetitions === 2
-          ? 3
-          : Math.max(1, Math.round(interval * ease));
-    ease = Math.max(
-      1.3,
-      ease + (0.1 - (5 - grade) * (0.08 + (5 - grade) * 0.02))
-    );
-  }
-  return {
-    ...card,
-    interval,
-    ease,
-    repetitions,
-    dueAt: Date.now() + interval * 86400000,
-  };
+/** 세션 결과 1건을 최근 30건 목록에 추가한다. */
+export function recordSession(
+  stats: AppState["stats"],
+  session: Omit<SessionRecord, "at">
+): AppState["stats"] {
+  const next: SessionRecord = { ...session, at: Date.now() };
+  return { ...stats, sessions: [...stats.sessions, next].slice(-30) };
 }
 
+export function sessionsOfKind(state: AppState, kind: SessionKind) {
+  return state.stats.sessions.filter(s => s.kind === kind);
+}
+
+// ---- SRS ----
 export function createWordCard(word: WordEntry): SrsCard {
   return {
     id: `word-${word.id}`,
@@ -123,18 +103,47 @@ export function createWordCard(word: WordEntry): SrsCard {
     meaning: word.meaning,
     dueAt: Date.now(),
     interval: 0,
-    ease: 2.5,
-    repetitions: 0,
+    stability: 0,
+    difficulty: 5,
+    reps: 0,
+    lapses: 0,
+    lastReview: 0,
+    state: "new",
     source: "word",
   };
 }
-export function dueCards(state: AppState) {
+
+/** 문장·표현을 SRS 에 넣을 때 쓰는 카드. 저장한 문장, 회화팩 표현 등이 여기로 온다. */
+export function createSentenceCard(
+  id: string,
+  text: string,
+  meaning: string,
+  source: SrsCard["source"] = "sentence"
+): SrsCard {
+  return {
+    id,
+    word: text,
+    meaning,
+    dueAt: Date.now(),
+    interval: 0,
+    stability: 0,
+    difficulty: 5,
+    reps: 0,
+    lapses: 0,
+    lastReview: 0,
+    state: "new",
+    source,
+  };
+}
+
+export function dueCards(state: AppState, now = Date.now()) {
   return Object.values(state.srs)
-    .filter(card => card.dueAt <= Date.now())
+    .filter(card => card.dueAt <= now)
     .sort((a, b) => a.dueAt - b.dueAt);
 }
-export function wordById(id: string) {
-  return WORDS.find(w => w.id === id);
+
+export function wordEntryById(id: string) {
+  return words().find(w => w.id === id);
 }
 
 // ---- 변환기 폴백 번역 ----
@@ -219,17 +228,57 @@ export function displayContractions(
 }
 
 // ---- 문장 ↔ 콘텐츠 연결 ----
-export function matchLessons(sentence: string): GrammarLesson[] {
-  return GRAMMAR_LESSONS.filter(lesson => lesson.pattern?.test(sentence)).slice(
-    0,
-    3
-  );
+/**
+ * 변환기는 입력이 바뀔 때마다 이 함수를 부른다.
+ * 매번 단어 360개를 선형 스캔하지 않도록 토큰 → 단어 역색인을 만들어 둔다.
+ * 데이터 청크가 새로 로드되면(revision 변화) 색인을 다시 만든다.
+ */
+type WordIndex = { revision: number; byToken: Map<string, WordEntry[]> };
+const wordIndexes: Partial<Record<Dialect, WordIndex>> = {};
+
+function tokenIndex(dialect: Dialect): Map<string, WordEntry[]> {
+  const current = wordIndexes[dialect];
+  if (current && current.revision === dataRevision()) return current.byToken;
+  const byToken = new Map<string, WordEntry[]>();
+  for (const entry of words()) {
+    // 다어절 표현은 첫 단어에만 걸어 두고 나머지는 조회 후에 확인한다.
+    const head = dt(entry.word, dialect).toLowerCase().split(" ")[0];
+    const bucket = byToken.get(head);
+    if (bucket) bucket.push(entry);
+    else byToken.set(head, [entry]);
+  }
+  wordIndexes[dialect] = { revision: dataRevision(), byToken };
+  return byToken;
 }
+
 export function relevantWords(sentence: string, dialect: Dialect) {
-  const tokens = new Set(normalize(sentence).split(" "));
-  return WORDS.filter(entry => {
-    const w = dt(entry.word, dialect).toLowerCase();
-    const parts = w.split(" ");
-    return parts.every(part => tokens.has(part));
-  }).slice(0, 4);
+  const tokens = new Set(normalize(sentence).split(" ").filter(Boolean));
+  if (tokens.size === 0) return [];
+  const index = tokenIndex(dialect);
+  const found: WordEntry[] = [];
+  for (const token of tokens) {
+    for (const entry of index.get(token) ?? []) {
+      const parts = dt(entry.word, dialect).toLowerCase().split(" ");
+      if (parts.every(part => tokens.has(part))) found.push(entry);
+      if (found.length >= 4) return found;
+    }
+  }
+  return found;
+}
+
+let lessonPatterns: { revision: number; list: GrammarLesson[] } | null = null;
+export function matchLessons(sentence: string): GrammarLesson[] {
+  if (!lessonPatterns || lessonPatterns.revision !== dataRevision()) {
+    lessonPatterns = {
+      revision: dataRevision(),
+      list: lessons().filter(l => l.pattern),
+    };
+  }
+  const out: GrammarLesson[] = [];
+  for (const lesson of lessonPatterns.list) {
+    // 전역 플래그가 없는 정규식이라 lastIndex 오염 걱정이 없다.
+    if (lesson.pattern!.test(sentence)) out.push(lesson);
+    if (out.length >= 3) break;
+  }
+  return out;
 }

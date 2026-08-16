@@ -6,7 +6,9 @@ import { useApp } from "@/state/context";
 import { PRONUNCIATION_COURSES } from "@/data";
 import type { PronunciationCourse } from "@/data/types";
 import { dt, asrLocale } from "@/lib/dialect";
-import { pronunciationScore, recordStudy } from "@/lib/engine";
+import { recordStudy } from "@/lib/engine";
+import { scorePronunciation } from "@/lib/phonetics";
+import { haptic } from "@/lib/haptics";
 import {
   canRecognizeSpeech,
   speak,
@@ -33,15 +35,18 @@ function CourseDetail({
   const recognizer = useRef<RecognizerHandle | null>(null);
   const asrSupported = canRecognizeSpeech();
 
-  const checkSentence = (index: number, sentence: string) => {
+  const checkSentence = async (index: number, sentence: string) => {
     if (listening !== null) {
       recognizer.current?.stop();
       setListening(null);
       return;
     }
-    const handle = startRecognition(asrLocale(app.settings.dialect), {
+    const handle = await startRecognition(asrLocale(app.settings.dialect), {
       onResult: text => {
-        const score = pronunciationScore(sentence, text);
+        const result = scorePronunciation(sentence, text);
+        const score = result.score;
+        if (score >= 70) haptic.success();
+        else haptic.error();
         setScores(prev => ({ ...prev, [index]: score }));
         update(state => ({
           ...state,
@@ -55,7 +60,9 @@ function CourseDetail({
         toast(
           score >= 80
             ? `훌륭해요! ${score}점`
-            : `${score}점 — 들리는 대로: "${text}"`
+            : result.issues[0]
+              ? `${score}점 — ${result.issues[0].hint}`
+              : `${score}점 — 들리는 대로: "${text}"`
         );
       },
       onEnd: () => setListening(null),
@@ -143,7 +150,7 @@ function CourseDetail({
                   ))}
                   {asrSupported && (
                     <button
-                      onClick={() => checkSentence(i, text)}
+                      onClick={() => void checkSentence(i, text)}
                       className={`ml-auto inline-flex min-h-9 items-center gap-1.5 rounded-lg px-3 text-[0.8125rem] font-semibold transition-colors ${
                         listening === i
                           ? "bg-destructive text-white"

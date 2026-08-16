@@ -40,24 +40,34 @@ http
       filePath = path.join(root, "index.html");
     }
 
-    const type = TYPES[path.extname(filePath).toLowerCase()] || "application/octet-stream";
+    const type =
+      TYPES[path.extname(filePath).toLowerCase()] || "application/octet-stream";
     res.writeHead(200, {
       "Content-Type": type,
-      "Cache-Control": filePath.includes(`${path.sep}assets${path.sep}`) ? "public, max-age=31536000" : "no-cache",
+      "Cache-Control": filePath.includes(`${path.sep}assets${path.sep}`)
+        ? "public, max-age=31536000"
+        : "no-cache",
     });
     fs.createReadStream(filePath).pipe(res);
   })
   .listen(port, "0.0.0.0", () => {
     const addresses = Object.values(os.networkInterfaces())
       .flat()
-      .filter((i) => i && i.family === "IPv4" && !i.internal)
-      .map((i) => i.address);
+      .filter(i => i && i.family === "IPv4" && !i.internal)
+      .map(i => i.address);
 
     console.log("\n워홀 영어 훈련 — 로컬 네트워크 서버가 실행 중입니다.\n");
     console.log(`  이 PC:      http://localhost:${port}/`);
-    for (const address of addresses) console.log(`  아이폰에서: http://${address}:${port}/`);
+    for (const address of addresses)
+      console.log(`  아이폰에서: http://${address}:${port}/`);
     console.log("\n  같은 Wi-Fi에 연결한 뒤 사파리에서 위 주소를 열고");
-    console.log("  공유 버튼 → '홈 화면에 추가' 를 누르면 앱처럼 사용할 수 있어요.");
-    console.log("\n  ※ HTTP 접속이라 오프라인 캐시(서비스워커)는 동작하지 않습니다.");
-    console.log("     PC를 꺼도 쓰려면 docs/설치안내.md 의 정적 호스팅 방법을 참고하세요.\n");
+    console.log(
+      "  공유 버튼 → '홈 화면에 추가' 를 누르면 앱처럼 사용할 수 있어요."
+    );
+    console.log(
+      "\n  ※ HTTP 접속이라 오프라인 캐시(서비스워커)는 동작하지 않습니다."
+    );
+    console.log(
+      "     PC를 꺼도 쓰려면 docs/설치안내.md 의 정적 호스팅 방법을 참고하세요.\n"
+    );
   });

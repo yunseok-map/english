@@ -36,13 +36,15 @@ export const GRAMMAR_B1: GrammarLesson[] = [
         q: "빈칸에 알맞은 것은? — I ___ my visa application last Tuesday.",
         options: ["have submitted", "submitted", "submit", "have submit"],
         answer: 1,
-        explain: "last Tuesday라는 명확한 과거 시점이 있으므로 과거시제 submitted를 써요.",
+        explain:
+          "last Tuesday라는 명확한 과거 시점이 있으므로 과거시제 submitted를 써요.",
       },
       {
         q: "빈칸에 알맞은 것은? — She ___ in Sydney since January.",
         options: ["lived", "has lived", "lives since", "was living since"],
         answer: 1,
-        explain: "since January부터 지금까지 계속되는 일이므로 현재완료 has lived를 써요.",
+        explain:
+          "since January부터 지금까지 계속되는 일이므로 현재완료 has lived를 써요.",
       },
       {
         q: "다음 중 올바른 문장은?",
@@ -53,19 +55,22 @@ export const GRAMMAR_B1: GrammarLesson[] = [
           "I seen him yesterday.",
         ],
         answer: 1,
-        explain: "yesterday가 있으면 현재완료를 쓸 수 없어요. 과거시제 saw가 맞아요.",
+        explain:
+          "yesterday가 있으면 현재완료를 쓸 수 없어요. 과거시제 saw가 맞아요.",
       },
       {
         q: "빈칸에 알맞은 것은? — ___ you ever ___ a road trip here?",
         options: ["Did / took", "Have / taken", "Have / took", "Did / taken"],
         answer: 1,
-        explain: "ever(한 번이라도)와 함께 경험을 물으므로 현재완료 Have you ever taken ~?이 맞아요.",
+        explain:
+          "ever(한 번이라도)와 함께 경험을 물으므로 현재완료 Have you ever taken ~?이 맞아요.",
       },
       {
         q: "빈칸에 알맞은 것은? — We ___ each other since we met at the hostel.",
         options: ["knew", "have known", "know", "were knowing"],
         answer: 1,
-        explain: "만난 시점부터 지금까지 계속 아는 사이이므로 현재완료 have known을 써요.",
+        explain:
+          "만난 시점부터 지금까지 계속 아는 사이이므로 현재완료 have known을 써요.",
       },
     ],
   },
@@ -94,7 +99,9 @@ export const GRAMMAR_B1: GrammarLesson[] = [
         ko: "비자 연장이 되면 1년 더 머무를 거예요.",
       },
       {
-        en: { us: "If I had a car, I would drive along the coast every weekend." },
+        en: {
+          us: "If I had a car, I would drive along the coast every weekend.",
+        },
         ko: "차가 있다면 주말마다 해안 도로를 달릴 텐데요.",
       },
       {
@@ -110,13 +117,15 @@ export const GRAMMAR_B1: GrammarLesson[] = [
         q: "빈칸에 알맞은 것은? — If you ___ the last train, you can take a taxi. (1식)",
         options: ["miss", "missed", "will miss", "would miss"],
         answer: 0,
-        explain: "1식 가정법의 if절에는 현재시제를 써요. if절 안에 will을 넣지 않아요.",
+        explain:
+          "1식 가정법의 if절에는 현재시제를 써요. if절 안에 will을 넣지 않아요.",
       },
       {
         q: "빈칸에 알맞은 것은? — If I ___ rich, I would buy a house by the beach.",
         options: ["am", "were", "will be", "would be"],
         answer: 1,
-        explain: "주절에 would가 있는 2식 가정법이므로 if절의 be동사는 were를 써요.",
+        explain:
+          "주절에 would가 있는 2식 가정법이므로 if절의 be동사는 were를 써요.",
       },
       {
         q: "빈칸에 알맞은 것은? — If she studies hard, she ___ pass the IELTS test.",
@@ -139,7 +148,8 @@ export const GRAMMAR_B1: GrammarLesson[] = [
           "If I would have time, I traveled more.",
         ],
         answer: 2,
-        explain: "2식은 if + 과거시제, 주절에 would + 동사원형이에요. 시제 짝을 맞춰야 해요.",
+        explain:
+          "2식은 if + 과거시제, 주절에 would + 동사원형이에요. 시제 짝을 맞춰야 해요.",
       },
     ],
     pattern: /\bif\b[^.?!]*\b(will|would|could|might)\b/i,
@@ -216,7 +226,8 @@ export const GRAMMAR_B1: GrammarLesson[] = [
           "The bill paid was by him.",
         ],
         answer: 2,
-        explain: "are shared가 올바른 수동태예요. steal의 과거분사는 stolen, clean은 is cleaned가 되어야 해요.",
+        explain:
+          "are shared가 올바른 수동태예요. steal의 과거분사는 stolen, clean은 is cleaned가 되어야 해요.",
       },
     ],
     pattern: /\b(is|are|was|were|been|being|be)\s+\w+(ed|en)\b/i,
@@ -264,7 +275,8 @@ export const GRAMMAR_B1: GrammarLesson[] = [
           "is station the",
         ],
         answer: 1,
-        explain: "간접의문문 안에서는 '주어 + 동사'의 평서문 어순으로 돌아가요.",
+        explain:
+          "간접의문문 안에서는 '주어 + 동사'의 평서문 어순으로 돌아가요.",
       },
       {
         q: "빈칸에 알맞은 것은? — Do you know what time ___?",
@@ -275,7 +287,8 @@ export const GRAMMAR_B1: GrammarLesson[] = [
           "the bus does leave",
         ],
         answer: 0,
-        explain: "간접의문문에서는 does가 사라지고 동사에 -s가 붙어 the bus leaves가 돼요.",
+        explain:
+          "간접의문문에서는 does가 사라지고 동사에 -s가 붙어 the bus leaves가 돼요.",
       },
       {
         q: "'그가 오는지 아세요?'를 영어로 하면?",
@@ -297,7 +310,8 @@ export const GRAMMAR_B1: GrammarLesson[] = [
           "You should open the window.",
         ],
         answer: 2,
-        explain: "Could you possibly ~?는 Can you ~?보다 한층 공손한 요청이에요.",
+        explain:
+          "Could you possibly ~?는 Can you ~?보다 한층 공손한 요청이에요.",
       },
       {
         q: "다음 중 올바른 문장은?",
@@ -308,7 +322,8 @@ export const GRAMMAR_B1: GrammarLesson[] = [
           "I wonder does she live where.",
         ],
         answer: 1,
-        explain: "I wonder 뒤에도 평서문 어순이 와요. does가 사라지고 lives가 돼요.",
+        explain:
+          "I wonder 뒤에도 평서문 어순이 와요. does가 사라지고 lives가 돼요.",
       },
     ],
     pattern: /\b(could you tell me|do you know|i was wondering|i wonder)\b/i,
@@ -377,7 +392,8 @@ export const GRAMMAR_B1: GrammarLesson[] = [
           "The dog which barks at night is his.",
         ],
         answer: 2,
-        explain: "we watched의 목적어 역할을 하는 목적격 관계대명사는 생략할 수 있어요. 주격은 생략 불가예요.",
+        explain:
+          "we watched의 목적어 역할을 하는 목적격 관계대명사는 생략할 수 있어요. 주격은 생략 불가예요.",
       },
       {
         q: "다음 중 올바른 문장은?",
@@ -388,7 +404,8 @@ export const GRAMMAR_B1: GrammarLesson[] = [
           "The cafe whose I work is busy.",
         ],
         answer: 1,
-        explain: "장소 뒤에 완전한 절이 오면 관계부사 where를 써요. which를 쓰려면 which I work at처럼 전치사가 필요해요.",
+        explain:
+          "장소 뒤에 완전한 절이 오면 관계부사 where를 써요. which를 쓰려면 which I work at처럼 전치사가 필요해요.",
       },
     ],
   },
@@ -448,13 +465,15 @@ export const GRAMMAR_B1: GrammarLesson[] = [
         q: "빈칸에 알맞은 것은? — He didn't ___ up for his shift yesterday. (나타나다)",
         options: ["stand", "look", "show", "grow"],
         answer: 2,
-        explain: "show up은 '나타나다, 출근하다'라는 뜻이에요. 무단결근을 no-show라고 부르기도 해요.",
+        explain:
+          "show up은 '나타나다, 출근하다'라는 뜻이에요. 무단결근을 no-show라고 부르기도 해요.",
       },
       {
         q: "다음 중 '거절하다'를 뜻하는 구동사는?",
         options: ["turn up", "turn on", "turn down", "turn over"],
         answer: 2,
-        explain: "turn down은 제안이나 요청을 거절한다는 뜻이에요. turn up은 '나타나다'예요.",
+        explain:
+          "turn down은 제안이나 요청을 거절한다는 뜻이에요. turn up은 '나타나다'예요.",
       },
     ],
   },

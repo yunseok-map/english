@@ -3,10 +3,14 @@ import {
   BookOpen,
   Check,
   ChevronRight,
+  CircleAlert,
   Headphones,
   MessagesSquare,
+  Mic,
+  Plane,
   RotateCcw,
   Sparkles,
+  TrendingUp,
   X,
 } from "lucide-react";
 import { Panel, SectionTitle } from "@/components/Panel";
@@ -15,13 +19,15 @@ import { StreakStrip } from "@/components/StreakStrip";
 import { Button } from "@/components/ui/button";
 import { useApp } from "@/state/context";
 import { buildDailyRoute, isTaskDone, type RouteTaskId } from "@/lib/route";
-import { LEVEL_LABEL } from "@/lib/level";
+import { LEVEL_LABEL, nextLevel, promotionProgress } from "@/lib/level";
+import { currentPhase } from "@/lib/curriculum";
+import { daysTo, todayKey } from "@/lib/engine";
 import { needsRetestBanner } from "@/state/migrate";
 import { dt } from "@/lib/dialect";
 import type { Screen } from "@/components/BottomNav";
 import type { LearnSection } from "@/screens/learn/LearnScreen";
 
-type Track = "word" | "review" | "grammar" | "talk";
+type Track = "word" | "review" | "grammar" | "talk" | "mistake";
 
 type RouteItem = {
   task: RouteTaskId;
@@ -43,6 +49,7 @@ const TRACK_STYLE: Record<Track, { bg: string; fg: string }> = {
     fg: "text-[var(--track-grammar)]",
   },
   talk: { bg: "bg-[var(--track-talk-soft)]", fg: "text-[var(--track-talk)]" },
+  mistake: { bg: "bg-destructive/10", fg: "text-destructive" },
 };
 
 export function HomeScreen({
@@ -58,6 +65,17 @@ export function HomeScreen({
   const route = useMemo(() => buildDailyRoute(app), [app]);
   const level = app.profile.level;
   const dialect = app.settings.dialect;
+  const phase = useMemo(
+    () => currentPhase(app.profile.departureDate),
+    [app.profile.departureDate]
+  );
+  const promotion = useMemo(() => promotionProgress(app), [app]);
+  const upcoming = nextLevel(level);
+  // 승급 제안은 하루에 한 번만. 매 진입마다 뜨면 잔소리가 된다.
+  const showPromotion =
+    promotion.eligible &&
+    upcoming &&
+    app.profile.promotionOfferedOn !== todayKey();
 
   const items: RouteItem[] = [
     {
@@ -99,6 +117,33 @@ export function HomeScreen({
       section: "packs",
     },
   ];
+
+  // 어제 틀린 게 있으면 오늘 루트 맨 앞에 끼워 넣는다.
+  if (route.mistakes.length > 0) {
+    items.unshift({
+      task: "mistakes",
+      track: "mistake",
+      icon: CircleAlert,
+      title: `틀렸던 ${route.mistakes.length}개 다시 보기`,
+      detail: route.mistakes
+        .slice(0, 3)
+        .map(m => m.label)
+        .join(" · "),
+      section: "mistakes",
+    });
+  }
+
+  // 말하기는 외운 단어가 쌓였을 때만 권한다.
+  if (route.speaking.length >= 3) {
+    items.push({
+      task: "speak",
+      track: "talk",
+      icon: Mic,
+      title: "소리 내어 말해 보기",
+      detail: `${route.speaking.length}개 표현 · 발음 점수 확인`,
+      section: "words",
+    });
+  }
   const doneCount = items.filter(item => isTaskDone(app, item.task)).length;
   const allDone = doneCount === items.length;
 
@@ -154,6 +199,59 @@ export function HomeScreen({
             studyDates={app.stats.studyDates}
             streak={app.stats.streak}
           />
+        </div>
+      </Panel>
+
+      {/* 승급 제안 */}
+      {showPromotion && (
+        <Panel className="flex items-center gap-3 border-primary bg-accent/60">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
+            <TrendingUp size={20} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <strong className="text-[0.9375rem]">
+              {upcoming} 레벨로 올라갈 준비가 됐어요
+            </strong>
+            <p className="mt-0.5 text-[0.8125rem] text-muted-foreground">
+              5문항만 확인하면 바로 넘어갈 수 있어요.
+            </p>
+          </div>
+          <Button size="sm" onClick={() => openScreen("profile")}>
+            확인
+          </Button>
+          <button
+            onClick={() =>
+              update(state => ({
+                ...state,
+                profile: { ...state.profile, promotionOfferedOn: todayKey() },
+              }))
+            }
+            aria-label="나중에"
+            className="flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted"
+          >
+            <X size={15} />
+          </button>
+        </Panel>
+      )}
+
+      {/* 출국 시점 커리큘럼 */}
+      <Panel className="flex items-start gap-3.5">
+        <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--track-word-soft)] text-[var(--track-word)]">
+          <Plane size={20} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="flex flex-wrap items-center gap-x-2 text-[0.9375rem] font-semibold">
+            {phase.title}
+            <span className="font-mono text-[0.75rem] font-medium text-muted-foreground">
+              {phase.window}
+            </span>
+          </p>
+          <p className="mt-1 text-[0.8125rem] leading-relaxed text-muted-foreground">
+            {phase.summary}
+          </p>
+          <p className="mt-1.5 font-mono text-[0.75rem] text-primary">
+            출국까지 {daysTo(app.profile.departureDate)}일
+          </p>
         </div>
       </Panel>
 

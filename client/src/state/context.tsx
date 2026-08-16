@@ -9,8 +9,17 @@ import {
 import type { AppState } from "@/types";
 import { DEFAULT_STATE } from "@/state/defaults";
 import { loadState, saveState } from "@/lib/storage";
-import { setSpeechDialect } from "@/lib/speech";
+import { sweepOrphanCards } from "@/state/migrate";
+import { setSpeechDialect, setSpeechEngine } from "@/lib/speech";
+import { setHapticsEnabled } from "@/lib/haptics";
+import { syncReminders } from "@/lib/notifications";
 import { hideSplash, syncStatusBar } from "@/lib/native";
+import {
+  allLevelsLoaded,
+  ensureLevels,
+  onDataChange,
+  prefetchRemainingLevels,
+} from "@/data";
 
 // tokens.css 의 --background 와 반드시 같은 값을 유지한다.
 const THEME_COLOR = { light: "#f6f7f5", dark: "#101817" };
@@ -20,6 +29,8 @@ type AppContextValue = {
   ready: boolean;
   /** 해석된 다크 모드 여부 (system 설정 반영) */
   dark: boolean;
+  /** 세 레벨 데이터가 모두 올라왔는지. 전체 검색·필터에서 참고한다. */
+  fullData: boolean;
   update: (fn: (draft: AppState) => AppState) => void;
 };
 
@@ -29,16 +40,44 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const [app, setApp] = useState<AppState>(DEFAULT_STATE);
   const [ready, setReady] = useState(false);
   const [dark, setDark] = useState(false);
+  const [fullData, setFullData] = useState(false);
   const appRef = useRef(app);
   appRef.current = app;
 
+  // 부팅: 저장 상태를 읽고 → 내 레벨 데이터만 불러오고 → 화면을 띄운다.
+  // 나머지 레벨은 유휴 시간에 뒤에서 채운다.
   useEffect(() => {
-    loadState().then(state => {
+    let cancelled = false;
+    void (async () => {
+      const state = await loadState();
+      await ensureLevels([state.profile.level]);
+      if (cancelled) return;
       setApp(state);
       setReady(true);
       void hideSplash();
-    });
+      prefetchRemainingLevels();
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
+
+  // 데이터 청크가 새로 올라오면 다시 그리고, 전부 모이면 고아 카드를 한 번 정리한다.
+  useEffect(() => {
+    const sync = () => {
+      const complete = allLevelsLoaded();
+      setFullData(complete);
+      if (complete) setApp(prev => sweepOrphanCards(prev));
+    };
+    sync();
+    return onDataChange(sync);
+  }, []);
+
+  // 레벨이 바뀌면(승급·재테스트) 해당 레벨 데이터를 확보한다.
+  useEffect(() => {
+    if (!ready) return;
+    void ensureLevels([app.profile.level]);
+  }, [app.profile.level, ready]);
 
   // 저장은 디바운스(400ms)로 묶고, 페이지 이탈 시 즉시 플러시한다.
   const saveTimer = useRef<number | undefined>(undefined);
@@ -91,14 +130,34 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     document.documentElement.dataset.scale = app.settings.fontScale;
   }, [app.settings.fontScale]);
 
-  // TTS/ASR 다이얼렉트 동기화
+  // TTS/ASR 다이얼렉트·엔진, 햅틱 on/off 동기화
   useEffect(() => {
     setSpeechDialect(app.settings.dialect);
   }, [app.settings.dialect]);
+  useEffect(() => {
+    setSpeechEngine(app.settings.speechEngine);
+  }, [app.settings.speechEngine]);
+  useEffect(() => {
+    setHapticsEnabled(app.settings.haptics);
+  }, [app.settings.haptics]);
+
+  // 복습 알림: 설정·시각·밀린 복습 수가 바뀔 때만 다시 건다.
+  const dueSignature = Object.values(app.srs).filter(
+    c => c.dueAt <= Date.now()
+  ).length;
+  useEffect(() => {
+    if (!ready) return;
+    void syncReminders(appRef.current);
+  }, [
+    ready,
+    app.settings.notifyEnabled,
+    app.settings.notifyHour,
+    dueSignature,
+  ]);
 
   const value = useMemo<AppContextValue>(
-    () => ({ app, ready, dark, update: setApp }),
-    [app, ready, dark]
+    () => ({ app, ready, dark, fullData, update: setApp }),
+    [app, ready, dark, fullData]
   );
   return (
     <AppStateContext.Provider value={value}>
