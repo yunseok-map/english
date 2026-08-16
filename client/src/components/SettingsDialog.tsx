@@ -409,7 +409,7 @@ export function SettingsDialog({
           <section className="py-1">
             <Row
               label="번역 엔진"
-              hint="키 없이 쓰려면 내장 엔진·MyMemory. 고른 엔진의 한도가 끝나면 MyMemory → 내장 엔진 순으로 자동 전환돼요."
+              hint="여기서 고른 엔진이 1순위예요. 한도가 끝나거나 실패하면 (대화용 Gemini 키가 있으면) Gemini → MyMemory → 내장 엔진 순으로 자동으로 넘어갑니다."
             >
               <Select
                 value={app.settings.translationProvider}

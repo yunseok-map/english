@@ -191,8 +191,15 @@ export function translationKeyFor(settings: Settings) {
  * 번역을 시도한다.
  *
  * 고른 엔진이 한도를 다 쓰거나(429) 네트워크가 끊기면 그대로 내장 엔진으로
- * 떨어지는 게 아니라, 키가 필요 없는 MyMemory 를 한 번 더 거친다.
- * 무료 한도가 금방 닳는 엔진(Google·DeepL)을 쓸 때 체감 차이가 크다.
+ * 떨어지지 않고 다음 차례로 넘어간다.
+ *
+ *   고른 엔진 → (대화용 Gemini 키가 있으면) Gemini → MyMemory → 내장 엔진
+ *
+ * 두 번째 자리가 핵심이다. DeepL 을 골라 두고 대화용으로 Gemini 키까지 넣어
+ * 뒀다면, DeepL 한도가 끝났을 때 이미 가진 Gemini 키를 놀릴 이유가 없다.
+ * 반대 방향(Gemini 선택 + DeepL 예비)은 안 된다. DeepL 키를 담아 둘 자리가
+ * translationKey 하나뿐인데 그건 고른 엔진이 쓰고 있기 때문이다.
+ *
  * 사용자가 "내장 엔진"을 직접 고른 경우에는 네트워크를 건드리지 않는다.
  */
 export async function translateText(text: string, settings: Settings) {
@@ -200,23 +207,28 @@ export async function translateText(text: string, settings: Settings) {
   const dialect = settings.dialect;
   if (provider.id === "fallback") return fallbackTranslate(text, dialect);
 
-  const key = translationKeyFor(settings);
   const offline = await fallbackTranslate(text, dialect);
-  if (KEYLESS.includes(provider.id) || key) {
-    try {
-      const out = (await provider.translate(text, key, dialect)).trim();
-      if (out && out !== offline) return out;
-    } catch {
-      // 아래 예비 엔진으로 넘어간다
-    }
-  }
+  const attempts: Array<{ engine: TranslationProvider; key: string }> = [];
 
-  if (provider.id !== "mymemory") {
+  const key = translationKeyFor(settings);
+  if (KEYLESS.includes(provider.id) || key)
+    attempts.push({ engine: provider, key });
+
+  const geminiKey = settings.llmProvider === "gemini" ? settings.llmKey : "";
+  if (provider.id !== "gemini" && geminiKey)
+    attempts.push({ engine: geminiTranslate, key: geminiKey });
+
+  if (provider.id !== "mymemory") attempts.push({ engine: myMemory, key: "" });
+
+  for (const attempt of attempts) {
     try {
-      const out = (await myMemory.translate(text, "", dialect)).trim();
+      const out = (
+        await attempt.engine.translate(text, attempt.key, dialect)
+      ).trim();
+      // 내장 엔진과 같은 답이면 그 엔진이 사실상 실패한 것이다. 다음으로 넘긴다.
       if (out && out !== offline) return out;
     } catch {
-      // 내장 엔진으로 떨어진다
+      // 다음 엔진으로
     }
   }
   return offline;
