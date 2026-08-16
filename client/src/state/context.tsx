@@ -11,7 +11,7 @@ import { DEFAULT_STATE } from "@/state/defaults";
 import { loadState, saveState } from "@/lib/storage";
 import { sweepOrphanCards } from "@/state/migrate";
 import {
-  setPreferredVoice,
+  setPreferredVoices,
   setSpeechDialect,
   setSpeechEngine,
 } from "@/lib/speech";
@@ -152,8 +152,11 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     setSpeechEngine(app.settings.speechEngine);
   }, [app.settings.speechEngine]);
   useEffect(() => {
-    setPreferredVoice(app.settings.voiceURI);
-  }, [app.settings.voiceURI]);
+    setPreferredVoices({
+      us: app.settings.voiceUS,
+      au: app.settings.voiceAU,
+    });
+  }, [app.settings.voiceUS, app.settings.voiceAU]);
   useEffect(() => {
     setHapticsEnabled(app.settings.haptics);
   }, [app.settings.haptics]);

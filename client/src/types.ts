@@ -18,8 +18,15 @@ export type Settings = {
   notifyHour: number;
   /** 음성 인식 엔진. auto = 네이티브 우선, 없으면 브라우저. */
   speechEngine: "auto" | "native" | "web";
-  /** 읽어 줄 목소리(voiceURI). 빈 문자열이면 기기에서 가장 좋은 걸 고른다. */
-  voiceURI: string;
+  /**
+   * 읽어 줄 목소리(voiceURI)를 표기별로 따로 둔다.
+   *
+   * 하나만 두면 US↔AU 를 오갈 때 골라 둔 목소리의 지역이 안 맞아 매번 자동
+   * 선택으로 떨어진다. 그러면 호주식으로 바꿔도 미국 목소리가 읽는 일이 생긴다.
+   * 빈 문자열이면 기기에서 가장 좋은 것을 고른다(미국 Zoe, 호주 Karen 우선).
+   */
+  voiceUS: string;
+  voiceAU: string;
   translationProvider:
     | "fallback"
     | "gemini"
@@ -135,6 +142,11 @@ export type Profile = {
   level: Level;
   onboardingDone: boolean;
   placement?: PlacementRecord;
+  /**
+   * 직전 회차에 낸 문항 id. 다음 회차에서 이걸 빼고 뽑아 같은 문제가 연달아
+   * 나오지 않게 한다. 한 회차치만 들고 있으면 충분하다.
+   */
+  placementSeen?: string[];
   levelHistory: LevelEvent[];
   /** 승급 제안을 마지막으로 띄운 날("YYYY-MM-DD"). 하루에 한 번만 권한다. */
   promotionOfferedOn?: string;

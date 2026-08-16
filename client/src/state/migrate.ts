@@ -110,7 +110,14 @@ function migrateSettings(s: any) {
     speechEngine: ["auto", "native", "web"].includes(s?.speechEngine)
       ? s.speechEngine
       : "auto",
-    voiceURI: typeof s?.voiceURI === "string" ? s.voiceURI : "",
+    // 예전에는 목소리를 하나만 저장했다. 기본 표기가 미국식이므로 그쪽으로 옮긴다.
+    voiceUS:
+      typeof s?.voiceUS === "string"
+        ? s.voiceUS
+        : typeof s?.voiceURI === "string"
+          ? s.voiceURI
+          : "",
+    voiceAU: typeof s?.voiceAU === "string" ? s.voiceAU : "",
     translationProvider: [
       "fallback",
       "gemini",

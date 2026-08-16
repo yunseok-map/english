@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Panel, Eyebrow } from "@/components/Panel";
 import { BrandMark } from "@/components/art/BrandMark";
 import { PlacementReview } from "@/components/PlacementReview";
+import { QuestionText } from "@/components/QuestionText";
 import { useApp } from "@/state/context";
 import { loadPlacement } from "@/data";
 import type { PlacementQuestion } from "@/data/types";
@@ -47,6 +48,8 @@ export function OnboardingScreen({
   const [questionIndex, setQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<PlacementAnswer[]>([]);
   const [typed, setTyped] = useState("");
+  // 답을 확정했지만 아직 다음 문항으로 넘어가지 않은 상태. 채점 결과를 띄운다.
+  const [graded, setGraded] = useState<PlacementAnswer | null>(null);
   const [result, setResult] = useState<PlacementOutcome | null>(null);
 
   // 문항 풀은 온보딩·재테스트에서만 쓴다. 초기 번들에서 빼고 여기서 불러온다.
@@ -63,9 +66,11 @@ export function OnboardingScreen({
 
   // 한 번 정한 seed 를 끝까지 쓴다. 리렌더마다 새로 뽑으면 문제가 바뀌어 버린다.
   const [seed] = useState(() => Date.now());
+  // 직전 회차 문항은 뒤로 미룬다. 재테스트에서 같은 문제가 다시 나오지 않게.
+  const [seenBefore] = useState(() => app.profile.placementSeen ?? []);
   const questions = useMemo(
-    () => (pool.length ? buildPlacementSet(pool, seed) : []),
-    [pool, seed]
+    () => (pool.length ? buildPlacementSet(pool, seed, seenBefore) : []),
+    [pool, seed, seenBefore]
   );
   const current = questions[questionIndex];
 
@@ -89,6 +94,9 @@ export function OnboardingScreen({
               answers: res.answers,
             }
           : state.profile.placement,
+        placementSeen: res
+          ? res.answers.map(a => a.questionId)
+          : state.profile.placementSeen,
         levelHistory: [
           ...state.profile.levelHistory,
           {
@@ -102,10 +110,13 @@ export function OnboardingScreen({
     onDone();
   };
 
-  /** 답 하나를 기록하고 다음 문항으로. 시험 중에는 정답을 알려 주지 않는다. */
-  const submit = (given: string) => {
-    if (!current) return;
-    const entry: PlacementAnswer = {
+  /**
+   * 답을 확정한다. 바로 넘어가지 않고 채점 결과와 해설을 먼저 보여 준다.
+   * 답은 이 시점에 잠기므로 정답을 보여 줘도 고쳐 낼 수는 없다.
+   */
+  const answer = (given: string) => {
+    if (!current || graded) return;
+    setGraded({
       questionId: current.id,
       band: current.band,
       section: current.section,
@@ -114,12 +125,18 @@ export function OnboardingScreen({
       expected: placementAnswerText(current),
       correct: isPlacementCorrect(current, given),
       explain: current.explain,
-    };
-    const next = [...answers, entry];
-    setAnswers(next);
+    });
+  };
+
+  /** 해설을 다 봤으면 다음 문항으로. 마지막이면 결과로. */
+  const next = () => {
+    if (!graded) return;
+    const all = [...answers, graded];
+    setAnswers(all);
+    setGraded(null);
     setTyped("");
     if (questionIndex + 1 >= questions.length) {
-      setResult(scorePlacement(next));
+      setResult(scorePlacement(all));
       setStep("result");
     } else {
       setQuestionIndex(questionIndex + 1);
@@ -219,7 +236,8 @@ export function OnboardingScreen({
               <ul className="space-y-1.5 text-[0.875rem] leading-relaxed text-muted-foreground">
                 <li>· 보기 없이 직접 입력하는 문항이 섞여 있어요.</li>
                 <li>
-                  · 정답은 시험 중에 알려 주지 않고, 끝나고 한꺼번에 봐요.
+                  · 한 문항 답할 때마다 바로 정답과 해설을 보여 줘요. 답은 그
+                  자리에서 잠기니 편하게 골라 보세요.
                 </li>
                 <li>
                   · 끝나면 틀린 문항마다 왜 틀렸는지 설명지를 드려요. 프로필에서
@@ -288,70 +306,160 @@ export function OnboardingScreen({
             </div>
 
             <Panel className="space-y-4">
-              <p className="text-[1.0625rem] font-semibold leading-relaxed [overflow-wrap:anywhere]">
-                {current.question}
-              </p>
+              <QuestionText
+                text={current.question}
+                segmented={current.kind === "error"}
+              />
 
               {current.kind === "fill" ? (
                 <form
                   className="space-y-2.5"
                   onSubmit={e => {
                     e.preventDefault();
-                    if (typed.trim()) submit(typed);
+                    if (typed.trim()) answer(typed);
                   }}
                 >
                   <div className="flex items-center gap-1.5 text-[0.8125rem] text-muted-foreground">
                     <PenLine size={14} /> 직접 입력
                   </div>
                   <Input
-                    value={typed}
+                    value={graded ? graded.given || "(답하지 않음)" : typed}
                     onChange={e => setTyped(e.target.value)}
                     placeholder="빈칸에 들어갈 말을 영어로 쓰세요"
+                    disabled={Boolean(graded)}
                     autoFocus
                     autoCapitalize="none"
                     autoCorrect="off"
                     spellCheck={false}
                   />
-                  {current.hint && (
+                  {current.hint && !graded && (
                     <p className="text-[0.8125rem] text-muted-foreground">
                       힌트: {current.hint}
                     </p>
                   )}
-                  <Button
-                    type="submit"
-                    className="w-full"
-                    disabled={!typed.trim()}
-                  >
-                    확인 <ChevronRight size={16} />
-                  </Button>
+                  {!graded && (
+                    <Button
+                      type="submit"
+                      className="w-full"
+                      disabled={!typed.trim()}
+                    >
+                      확인 <ChevronRight size={16} />
+                    </Button>
+                  )}
                 </form>
               ) : (
                 <div className="space-y-2">
-                  {current.options.map((option, i) => (
-                    <button
-                      key={i}
-                      onClick={() => submit(option)}
-                      className="flex w-full items-center gap-2.5 rounded-xl border bg-card px-4 py-3 text-left text-[0.9375rem] transition-colors hover:border-ring"
-                    >
-                      <span className="font-mono text-[0.8125rem] text-muted-foreground">
-                        {String.fromCharCode(65 + i)}
-                      </span>
-                      <span className="flex-1 [overflow-wrap:anywhere]">
-                        {option}
-                      </span>
-                    </button>
-                  ))}
+                  {current.options.map((option, i) => {
+                    // 채점 전에는 아무 표시도 하지 않는다.
+                    const state = !graded
+                      ? "idle"
+                      : option === graded.expected
+                        ? "correct"
+                        : option === graded.given
+                          ? "wrong"
+                          : "idle";
+                    return (
+                      <button
+                        key={i}
+                        onClick={() => answer(option)}
+                        disabled={Boolean(graded)}
+                        className={`flex w-full items-center gap-2.5 rounded-xl border px-4 py-3 text-left text-[0.9375rem] transition-colors ${
+                          state === "correct"
+                            ? "border-primary bg-accent text-accent-foreground"
+                            : state === "wrong"
+                              ? "border-destructive/60 bg-destructive/10"
+                              : "bg-card hover:border-ring"
+                        }`}
+                      >
+                        <span className="font-mono text-[0.8125rem] text-muted-foreground">
+                          {String.fromCharCode(65 + i)}
+                        </span>
+                        <span className="flex-1 [overflow-wrap:anywhere]">
+                          {option}
+                        </span>
+                        {state === "correct" && (
+                          <Check size={17} className="shrink-0 text-primary" />
+                        )}
+                        {state === "wrong" && (
+                          <X size={17} className="shrink-0 text-destructive" />
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </Panel>
 
-            <Button
-              variant="ghost"
-              className="w-full text-muted-foreground"
-              onClick={() => submit("")}
-            >
-              모르겠어요, 넘어가기
-            </Button>
+            {graded ? (
+              <>
+                <Panel
+                  className={`space-y-3 ${
+                    graded.correct
+                      ? "border-primary/50"
+                      : "border-destructive/50"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`flex size-6 items-center justify-center rounded-full ${
+                        graded.correct
+                          ? "bg-primary/15 text-primary"
+                          : "bg-destructive/15 text-destructive"
+                      }`}
+                    >
+                      {graded.correct ? <Check size={14} /> : <X size={14} />}
+                    </span>
+                    <strong
+                      className={`text-[0.9375rem] font-bold ${
+                        graded.correct ? "text-primary" : "text-destructive"
+                      }`}
+                    >
+                      {graded.correct ? "정답이에요" : "틀렸어요"}
+                    </strong>
+                  </div>
+
+                  {!graded.correct && (
+                    <dl className="space-y-1.5 text-[0.875rem]">
+                      <div className="flex gap-2">
+                        <dt className="w-12 shrink-0 text-muted-foreground">
+                          내 답
+                        </dt>
+                        <dd className="flex-1 font-mono text-destructive [overflow-wrap:anywhere]">
+                          {graded.given.trim() || "답하지 않음"}
+                        </dd>
+                      </div>
+                      <div className="flex gap-2">
+                        <dt className="w-12 shrink-0 text-muted-foreground">
+                          정답
+                        </dt>
+                        <dd className="flex-1 font-mono text-primary [overflow-wrap:anywhere]">
+                          {graded.expected}
+                        </dd>
+                      </div>
+                    </dl>
+                  )}
+
+                  <p className="rounded-xl bg-muted/60 p-3 text-[0.875rem] leading-relaxed [overflow-wrap:anywhere]">
+                    {graded.explain}
+                  </p>
+                </Panel>
+
+                <Button className="w-full" size="lg" onClick={next} autoFocus>
+                  {questionIndex + 1 >= questions.length
+                    ? "결과 보기"
+                    : "다음 문항"}{" "}
+                  <ChevronRight size={17} />
+                </Button>
+              </>
+            ) : (
+              <Button
+                variant="ghost"
+                className="w-full text-muted-foreground"
+                onClick={() => answer("")}
+              >
+                모르겠어요, 넘어가기
+              </Button>
+            )}
           </>
         )}
 
@@ -369,6 +477,16 @@ export function OnboardingScreen({
                 {LEVEL_DESC[result.level]}
               </p>
             </div>
+
+            <Panel className="space-y-2 bg-muted/40">
+              <Eyebrow className="text-muted-foreground">판정 근거</Eyebrow>
+              <p className="text-[0.875rem] leading-relaxed">{result.reason}</p>
+              {result.shortOf && (
+                <p className="text-[0.8125rem] leading-relaxed text-muted-foreground">
+                  다음 레벨까지 모자란 부분: {result.shortOf}
+                </p>
+              )}
+            </Panel>
 
             <Panel className="space-y-3">
               <Eyebrow className="text-muted-foreground">난이도별 결과</Eyebrow>

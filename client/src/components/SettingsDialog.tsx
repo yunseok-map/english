@@ -202,24 +202,34 @@ export function SettingsDialog({
               </Select>
             </Row>
             <Row
-              label="목소리"
+              label={`목소리 · ${app.settings.dialect === "au" ? "호주식" : "미국식"}`}
               hint={
                 voiceMatches
-                  ? `지금 표기(${app.settings.dialect === "au" ? "호주식" : "미국식"}) 목소리 중에서 고릅니다. 아이폰 설정 → 손쉬운 사용 → 콘텐츠 말하기 → 음성 → 영어 에서 고품질 목소리를 내려받으면 훨씬 자연스러워져요.`
-                  : `이 기기에 ${app.settings.dialect === "au" ? "호주" : "미국"} 목소리가 없어 다른 영어 목소리로 읽고 있어요. 아이폰 설정 → 손쉬운 사용 → 콘텐츠 말하기 → 음성 → 영어(${app.settings.dialect === "au" ? "호주" : "미국"}) 에서 내려받으면 그 발음으로 바뀝니다.`
+                  ? `표기별로 따로 저장돼요. 지금은 ${app.settings.dialect === "au" ? "호주식(en-AU)" : "미국식(en-US)"} 목소리를 고르는 중이고, 표기를 바꾸면 그쪽에 골라 둔 목소리로 자동으로 넘어갑니다. 권장은 미국식 Zoe · 호주식 Karen 이에요. 아이폰 설정 → 손쉬운 사용 → 콘텐츠 말하기 → 음성 → 영어 에서 내려받으면 목록에 나타납니다.`
+                  : `이 기기에 ${app.settings.dialect === "au" ? "호주" : "미국"} 목소리가 없어 다른 영어 목소리로 읽고 있어요. 아이폰 설정 → 손쉬운 사용 → 콘텐츠 말하기 → 음성 → 영어(${app.settings.dialect === "au" ? "호주" : "미국"}) 에서 ${app.settings.dialect === "au" ? "Karen" : "Zoe"} 을(를) 내려받으면 그 발음으로 바뀝니다.`
               }
             >
               <div className="space-y-2">
                 <Select
-                  value={app.settings.voiceURI || "auto"}
-                  onValueChange={v => set("voiceURI", v === "auto" ? "" : v)}
+                  value={
+                    (app.settings.dialect === "au"
+                      ? app.settings.voiceAU
+                      : app.settings.voiceUS) || "auto"
+                  }
+                  onValueChange={v =>
+                    set(
+                      app.settings.dialect === "au" ? "voiceAU" : "voiceUS",
+                      v === "auto" ? "" : v
+                    )
+                  }
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="auto">
-                      자동 (가장 자연스러운 것)
+                      자동 ({app.settings.dialect === "au" ? "Karen" : "Zoe"}{" "}
+                      우선)
                     </SelectItem>
                     {voices.map(voice => (
                       <SelectItem key={voice.id} value={voice.id}>

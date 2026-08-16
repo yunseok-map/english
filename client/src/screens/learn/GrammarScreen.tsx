@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, CheckCircle2, ChevronRight, Volume2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Panel, Eyebrow, Empty } from "@/components/Panel";
+import { QuestionText } from "@/components/QuestionText";
+import { SentenceBuild } from "@/components/SentenceBuild";
 import { useApp } from "@/state/context";
 import { lessons as allLessons } from "@/data";
 import type { GrammarLesson } from "@/data/types";
@@ -203,13 +205,18 @@ function LessonDetail({
         </div>
       </Panel>
 
+      <SentenceBuild lesson={lesson} />
+
       <Panel className="space-y-4">
         <Eyebrow>QUIZ · 5문항 중 4개 이상 통과</Eyebrow>
         {lesson.quiz.map((question, qi) => (
           <div key={qi} className="space-y-2">
-            <p className="text-[0.9375rem] font-semibold leading-relaxed">
-              {qi + 1}. {question.q}
-            </p>
+            <div className="flex gap-2">
+              <span className="font-mono text-[0.9375rem] font-semibold text-muted-foreground">
+                {qi + 1}.
+              </span>
+              <QuestionText className="flex-1" text={question.q} />
+            </div>
             <div className="grid gap-1.5">
               {question.options.map((option, oi) => {
                 const picked = answers[qi] === oi;

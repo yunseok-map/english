@@ -21,9 +21,59 @@ export function setSpeechEngine(value: Settings["speechEngine"]) {
   engine = value;
 }
 
-let preferredVoiceURI = "";
-export function setPreferredVoice(uri: string) {
-  preferredVoiceURI = uri;
+/** 표기별로 골라 둔 목소리. 하나만 두면 US↔AU 전환 때 매번 풀린다. */
+const preferred: Record<Dialect, string> = { us: "", au: "" };
+export function setPreferredVoices(next: { us: string; au: string }) {
+  preferred.us = next.us;
+  preferred.au = next.au;
+}
+function preferredFor(locale: string) {
+  return locale.toLowerCase() === "en-au" ? preferred.au : preferred.us;
+}
+
+/**
+ * 표기별 기본 목소리.
+ * 자동 선택은 "고품질 표시가 붙은 것"을 고를 뿐이라 기기마다 결과가 들쭉날쭉하다.
+ * 두 표기의 기준 목소리를 못박아 두면 US↔AU 를 오갈 때 같은 짝으로만 바뀐다.
+ */
+export const DEFAULT_VOICE: Record<Dialect, string> = {
+  us: "Zoe",
+  au: "Karen",
+};
+
+/**
+ * 애플이 제공하는 영어 목소리 이름.
+ *
+ * 기기 목록에는 로봇·효과음 계열과 다른 언어용 항목이 잔뜩 섞여 나온다.
+ * 막을 것을 하나씩 세는 방식(blocklist)은 새 항목이 생길 때마다 뚫리므로,
+ * 쓸 것만 적어 두고 나머지는 전부 뺀다. 이 목록에 하나도 안 걸리는 기기에서는
+ * 목록이 비지 않도록 원래 점수순 결과로 되돌린다.
+ */
+const KNOWN_VOICES: Record<string, string[]> = {
+  "en-us": [
+    "Zoe",
+    "Samantha",
+    "Ava",
+    "Allison",
+    "Susan",
+    "Nicky",
+    "Joelle",
+    "Noelle",
+    "Aaron",
+    "Evan",
+    "Nathan",
+    "Tom",
+  ],
+  "en-au": ["Karen", "Lee", "Matilda"],
+  "en-gb": ["Kate", "Serena", "Stephanie", "Daniel", "Oliver", "Arthur"],
+};
+
+/** 이름 뒤에 붙는 (Enhanced)·(Premium) 같은 꼬리표를 떼고 본이름만 남긴다. */
+function baseName(voice: SpeechSynthesisVoice) {
+  return voice.name
+    .replace(/\s*\(.*\)\s*$/, "")
+    .replace(/\s+(Enhanced|Premium|Compact)$/i, "")
+    .trim();
 }
 
 const normalizeLang = (lang: string) => lang.replace("_", "-").toLowerCase();
@@ -102,6 +152,10 @@ function voiceScore(voice: SpeechSynthesisVoice, locale: string) {
 
   const uri = voice.voiceURI.toLowerCase();
   const name = voice.name.toLowerCase();
+  // 표기별 기준 목소리를 가장 앞으로. 품질 가산점보다 크게 잡아야 뒤집히지 않는다.
+  const wanted =
+    locale.toLowerCase() === "en-au" ? DEFAULT_VOICE.au : DEFAULT_VOICE.us;
+  if (baseName(voice).toLowerCase() === wanted.toLowerCase()) score += 200;
   if (uri.includes("premium")) score += 40;
   else if (name.includes("natural") || name.includes("neural")) score += 36;
   else if (uri.includes("enhanced") || name.includes("enhanced")) score += 32;
@@ -113,20 +167,28 @@ function voiceScore(voice: SpeechSynthesisVoice, locale: string) {
 
 function webVoices(locale: string) {
   if (!("speechSynthesis" in window)) return [];
-  return window.speechSynthesis
+  const scored = window.speechSynthesis
     .getVoices()
     .map(voice => ({ voice, score: voiceScore(voice, locale) }))
     .filter(v => v.score >= 0)
     .sort((a, b) => b.score - a.score)
     .map(v => v.voice);
+
+  // 정식 목소리만 남긴다. 한 개도 안 걸리는 기기라면 목록이 비지 않게 원본을 쓴다.
+  const known = KNOWN_VOICES[locale.toLowerCase()];
+  if (!known) return scored;
+  const lower = known.map(n => n.toLowerCase());
+  const curated = scored.filter(v => lower.includes(baseName(v).toLowerCase()));
+  return curated.length > 0 ? curated : scored;
 }
 
 function pickWebVoice(locale: string) {
   if (!("speechSynthesis" in window)) return null;
-  if (preferredVoiceURI) {
+  const wanted = preferredFor(locale);
+  if (wanted) {
     const chosen = window.speechSynthesis
       .getVoices()
-      .find(v => v.voiceURI === preferredVoiceURI);
+      .find(v => v.voiceURI === wanted);
     // 골라 둔 목소리라도 지역이 다르면 무시하고 자동 선택으로 넘어간다.
     if (chosen && normalizeLang(chosen.lang) === locale.toLowerCase())
       return chosen;
@@ -153,11 +215,24 @@ export async function loadVoices(
   if (hasNativeTts()) {
     try {
       const { voices } = await NativeTts.voices({ language: locale });
-      return voices.map(v => ({
+      const known = KNOWN_VOICES[locale.toLowerCase()]?.map(n =>
+        n.toLowerCase()
+      );
+      const mapped = voices.map(v => ({
         id: v.id,
         name: v.name,
         detail: QUALITY_LABEL[v.quality] ?? v.quality,
       }));
+      if (!known) return mapped;
+      const curated = mapped.filter(v =>
+        known.includes(
+          v.name
+            .replace(/\s*\(.*\)\s*$/, "")
+            .trim()
+            .toLowerCase()
+        )
+      );
+      return curated.length > 0 ? curated : mapped;
     } catch {
       /* 네이티브 호출이 실패하면 웹 목록으로 떨어진다. */
     }
@@ -174,7 +249,9 @@ export async function hasExactVoice(localeOverride?: string) {
   if (hasNativeTts()) {
     try {
       const { voices } = await NativeTts.voices({ language: locale });
-      return voices.some(v => v.lang.toLowerCase().replace("_", "-") === locale);
+      return voices.some(
+        v => v.lang.toLowerCase().replace("_", "-") === locale
+      );
     } catch {
       return true;
     }
@@ -194,7 +271,7 @@ export function speak(text: string, rate = 0.95, localeOverride?: string) {
       text,
       language: locale,
       rate,
-      voiceId: preferredVoiceURI || undefined,
+      voiceId: preferredFor(locale) || undefined,
     }).catch(() => undefined);
     return;
   }

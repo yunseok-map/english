@@ -1,16 +1,20 @@
 import type { PlacementQuestion } from "@/data/types";
 
 /**
- * 레벨 테스트 문항 풀 72개.
+ * 레벨 테스트 문항 풀 108개.
  *
- * 밴드(A1/A2/B1) × 영역(어휘/문법/활용) 아홉 칸에 8문항씩 고르게 넣었다.
- * 한 번 응시할 때는 여기서 36문항(칸마다 4개)을 뽑아 쓴다. 다 풀리면 재테스트가
- * 기억력 시험이 되므로 매번 다른 조합이 나오게 한 것이다.
+ * 밴드(A1/A2/B1) × 영역(어휘/문법/활용) 아홉 칸에 12문항씩 고르게 넣었다.
+ * 한 번 응시할 때는 여기서 36문항(칸마다 4개)만 뽑는다. 풀을 다 내면 재테스트가
+ * 기억력 시험이 되고, 직전 회차 문항을 빼고도 뽑으려면 여유가 필요하다.
  *
- * 칸마다 유형을 섞어 둔다 — 4지선다 5 · 직접입력 2 · 오류찾기 1.
- * 4지선다만 있으면 찍어서 25%가 그냥 들어오는데, 밴드당 12문항으로 레벨을 가르는
- * 마당에 그 정도 잡음이면 판정이 흔들린다. 추출기가 칸마다 직접입력을 반드시
- * 하나씩 끼워 넣으므로 한 회차에 최소 9문항은 찍을 수 없다.
+ * 칸마다 유형을 섞어 둔다 — 4지선다 7 · 직접입력 3 · 오류찾기 2.
+ * 추출기가 칸마다 직접입력 1 · 오류찾기 1 을 먼저 확보하므로, 한 회차에는 늘
+ * 찍을 수 없는 문항 9개와 문장을 뜯어 봐야 하는 문항 9개가 들어간다.
+ * 4지선다만 있으면 찍어서 25%가 그냥 깔리는데, 밴드당 12문항으로 레벨을 가르는
+ * 마당에 그 정도 잡음이면 판정이 흔들린다.
+ *
+ * 문항을 더할 때는 아홉 칸의 개수와 유형 비율을 함께 맞춰야 한다. 추출기가
+ * 그 구성을 전제로 돌아간다.
  */
 export const PLACEMENT_QUESTIONS: PlacementQuestion[] = [
   // ─────────────────────────────────────────────
@@ -413,7 +417,7 @@ export const PLACEMENT_QUESTIONS: PlacementQuestion[] = [
     kind: "fill",
     question:
       "빈칸에 들어갈 한 단어를 영어로 쓰세요. — Sorry, I don't have cash. Can I pay by ___?",
-    accept: ["card", "credit card", "eftpos"],
+    accept: ["card", "credit card", "debit card", "eftpos", "phone"],
     explain:
       "카드로 계산하겠다고 할 때는 pay by card라고 해요. 호주에서는 직불카드 결제를 뜻하는 EFTPOS라는 말도 아주 흔히 씁니다.",
   },
@@ -457,7 +461,7 @@ export const PLACEMENT_QUESTIONS: PlacementQuestion[] = [
     kind: "fill",
     question:
       "빈칸에 들어갈 한 단어를 영어로 쓰세요. — My manager sends out the ___ every Thursday so we know which days we're working next week.",
-    accept: ["roster", "schedule", "rota"],
+    accept: ["roster", "schedule", "rota", "timetable"],
     explain:
       "근무표는 호주·영국에서 roster라고 불러요. 미국에서는 schedule을 더 많이 씁니다.",
   },
@@ -468,9 +472,9 @@ export const PLACEMENT_QUESTIONS: PlacementQuestion[] = [
     kind: "fill",
     question:
       "빈칸에 들어갈 한 단어를 영어로 쓰세요. — I got a fine because I forgot to ___ on when I got on the tram.",
-    accept: ["tap"],
+    accept: ["tap", "touch", "scan"],
     explain:
-      "교통카드를 단말기에 대는 동작은 탈 때 tap on, 내릴 때 tap off예요. 내릴 때 tap off를 안 하면 최대 요금이 빠져나갑니다.",
+      "교통카드를 단말기에 대는 동작은 탈 때 tap on, 내릴 때 tap off예요. 멜버른 Myki는 같은 뜻으로 touch on·touch off라고 안내합니다. 내릴 때 안 찍으면 최대 요금이 빠져나가요.",
   },
   {
     id: "pt-v17",
@@ -587,9 +591,9 @@ export const PLACEMENT_QUESTIONS: PlacementQuestion[] = [
     kind: "fill",
     question:
       "빈칸에 알맞은 한 단어를 쓰세요. — There ___ two bathrooms in this share house.",
-    accept: ["are"],
+    accept: ["are", "were"],
     explain:
-      "There 뒤의 be동사는 그 뒤에 오는 명사에 맞춰요. two bathrooms가 복수라 are를 씁니다. 하나면 There is입니다.",
+      "There 뒤의 be동사는 그 뒤에 오는 명사에 맞춰요. two bathrooms가 복수라 are를 씁니다. 하나면 There is예요. (지난 일을 말한다면 were 도 맞습니다.)",
   },
   {
     id: "pt-g12",
@@ -691,10 +695,10 @@ export const PLACEMENT_QUESTIONS: PlacementQuestion[] = [
     section: "grammar",
     kind: "fill",
     question:
-      "빈칸에 알맞은 한 단어를 쓰세요. — The house ___ I'm staying in is only ten minutes from the beach.",
-    accept: ["that", "which"],
+      "빈칸에 알맞은 한 단어를 쓰세요. — Your contract must ___ signed before your first shift.",
+    accept: ["be"],
     explain:
-      "사물을 꾸미는 관계대명사는 that이나 which를 써요. 사람이라면 who를 씁니다.",
+      "조동사 뒤에는 동사원형이 오고, 계약서는 서명을 '당하는' 쪽이라 수동태가 돼요. 그래서 must be signed 입니다.",
   },
   {
     id: "pt-g21",
@@ -768,7 +772,7 @@ export const PLACEMENT_QUESTIONS: PlacementQuestion[] = [
     kind: "fill",
     question:
       "메뉴를 아직 못 골랐을 때 종업원에게 시간을 조금 더 달라고 합니다. 빈칸에 들어갈 한 단어를 쓰세요. — Could I have a few more ___, please?",
-    accept: ["minutes"],
+    accept: ["minutes", "mins", "moments"],
     explain:
       "잠깐 더 달라고 할 때는 a few more minutes라고 해요. a few 뒤에는 셀 수 있는 명사의 복수형이 옵니다.",
   },
@@ -823,7 +827,7 @@ export const PLACEMENT_QUESTIONS: PlacementQuestion[] = [
     kind: "fill",
     question:
       "동료에게 금요일 근무를 서로 바꾸자고 부탁합니다. 빈칸에 들어갈 한 단어를 쓰세요. — Would you mind ___ shifts with me on Friday?",
-    accept: ["swapping", "switching", "changing", "swopping"],
+    accept: ["swapping", "switching", "changing", "trading", "swopping"],
     explain:
       "Would you mind 뒤에는 동명사(-ing)가 와요. 근무를 맞바꾸는 것은 swap shifts라고 합니다.",
   },
@@ -894,7 +898,7 @@ export const PLACEMENT_QUESTIONS: PlacementQuestion[] = [
     kind: "fill",
     question:
       "집을 보러 가서 계약 조건을 되짚어 확인합니다. 빈칸에 들어갈 한 단어를 쓰세요. — Just to ___, the rent includes water but not electricity, right?",
-    accept: ["confirm", "clarify", "check"],
+    accept: ["confirm", "clarify", "check", "recap", "double-check"],
     explain:
       "확인차 다시 짚을 때는 Just to confirm 또는 Just to clarify로 시작해요. 상대를 의심하는 느낌 없이 조건을 되물을 수 있습니다.",
   },
@@ -941,5 +945,454 @@ export const PLACEMENT_QUESTIONS: PlacementQuestion[] = [
     answer: 2,
     explain:
       "업무 중 사고는 incident report에 남겨야 나중에 치료비·산재 처리가 됩니다. just in case ~로 이유를 붙이면 상대를 몰아세우지 않으면서 필요한 절차를 요청할 수 있어요.",
+  },
+
+  // ─────────────────────────────────────────────
+  // 3차 확장 — 칸마다 직접입력 1 · 오류찾기 1 · 4지선다 2
+  // 칸을 8 → 12 로 키워, 직전 회차 문항을 빼고도 뽑을 여유를 만든다.
+  // ─────────────────────────────────────────────
+  {
+    id: "pt-v25",
+    band: "A1",
+    section: "vocab",
+    kind: "fill",
+    question:
+      "빈칸에 들어갈 한 단어를 영어로 쓰세요. — I'd like to send this box to Korea. Where's the nearest post ___?",
+    accept: ["office"],
+    explain:
+      "우체국은 post office예요. 두 단어가 늘 한 덩어리로 붙어 다닙니다.",
+  },
+  {
+    id: "pt-v26",
+    band: "A1",
+    section: "vocab",
+    kind: "error",
+    question:
+      "밑줄 친 부분 중 틀린 곳은? — I have / a many / questions / about the contract.",
+    options: ["I have", "a many", "questions", "about the contract"],
+    answer: 1,
+    explain:
+      "many 앞에는 a를 붙이지 않아요. many questions 또는 a lot of questions라고 씁니다.",
+  },
+  {
+    id: "pt-v27",
+    band: "A1",
+    section: "vocab",
+    question: "호주에서 '현금인출기'를 가리킬 때 가장 흔히 쓰는 말은?",
+    options: ["cash point", "cash machine", "ATM", "money box"],
+    answer: 2,
+    explain:
+      "호주에서는 그냥 ATM이라고 해요. cashpoint·cash machine은 영국식 표현이고, money box는 저금통을 뜻합니다.",
+  },
+  {
+    id: "pt-v28",
+    band: "A1",
+    section: "vocab",
+    question:
+      "빈칸에 알맞은 단어는? — I need to buy a SIM card. Which ___ do you recommend?",
+    options: ["carrier", "career", "cashier", "courier"],
+    answer: 0,
+    explain:
+      "통신사는 carrier(또는 telco)예요. career는 직업 경력, cashier는 계산원, courier는 택배 기사라 뜻이 전혀 다릅니다.",
+  },
+  {
+    id: "pt-v29",
+    band: "A2",
+    section: "vocab",
+    kind: "fill",
+    question:
+      "빈칸에 들어갈 한 단어를 영어로 쓰세요. — My phone was stolen, so I went to the police station to file a ___.",
+    accept: ["report", "complaint"],
+    explain:
+      "도난 신고서를 접수하는 것은 file a report예요. 여행자보험을 청구할 때 이 서류를 요구합니다.",
+  },
+  {
+    id: "pt-v30",
+    band: "A2",
+    section: "vocab",
+    kind: "error",
+    question:
+      "밑줄 친 부분 중 틀린 곳은? — The doctor / gave me / a prescribe / for antibiotics.",
+    options: ["The doctor", "gave me", "a prescribe", "for antibiotics"],
+    answer: 2,
+    explain:
+      "처방전은 명사 prescription이에요. prescribe는 '처방하다'라는 동사라 a를 붙일 수 없습니다.",
+  },
+  {
+    id: "pt-v31",
+    band: "A2",
+    section: "vocab",
+    question:
+      "빈칸에 알맞은 단어는? — This milk is past its ___ date. Don't drink it.",
+    options: ["due", "expiry", "issue", "birth"],
+    answer: 1,
+    explain:
+      "식품의 소비기한은 expiry date예요. due date는 마감일이나 출산 예정일을 가리킵니다.",
+  },
+  {
+    id: "pt-v32",
+    band: "A2",
+    section: "vocab",
+    question: "'세입자'를 뜻하는 단어는?",
+    options: ["landlord", "tenant", "agent", "guarantor"],
+    answer: 1,
+    explain:
+      "빌려 사는 사람은 tenant, 집주인은 landlord예요. agent는 중개인, guarantor는 보증인을 뜻합니다.",
+  },
+  {
+    id: "pt-v33",
+    band: "B1",
+    section: "vocab",
+    kind: "fill",
+    question:
+      "빈칸에 들어갈 한 단어를 영어로 쓰세요. — I'm covered by travel insurance, so I can make a ___ for the stolen laptop.",
+    accept: ["claim"],
+    explain:
+      "보험금을 청구하는 것은 make a claim이에요. claim은 명사로도 동사로도 씁니다.",
+  },
+  {
+    id: "pt-v34",
+    band: "B1",
+    section: "vocab",
+    kind: "error",
+    question:
+      "밑줄 친 부분 중 틀린 곳은? — My employer / must pay / superannuation / in addition of my wage.",
+    options: [
+      "My employer",
+      "must pay",
+      "superannuation",
+      "in addition of my wage",
+    ],
+    answer: 3,
+    explain:
+      "'~에 더해'는 in addition to 예요. of를 쓰지 않습니다. 비슷하게 생긴 due to·owing to 와 헷갈리지 마세요.",
+  },
+  {
+    id: "pt-v35",
+    band: "B1",
+    section: "vocab",
+    question:
+      "빈칸에 알맞은 단어는? — The job ad says the position is ___, so the hours aren't guaranteed.",
+    options: ["permanent", "casual", "salaried", "tenured"],
+    answer: 1,
+    explain:
+      "호주에서 casual 은 근무시간이 보장되지 않는 대신 시급에 할증이 붙는 고용 형태예요. permanent 는 시간이 보장되는 정규 고용입니다.",
+  },
+  {
+    id: "pt-v36",
+    band: "B1",
+    section: "vocab",
+    question: "'계약 기간을 채우지 않고 집을 먼저 나가는 것'을 뜻하는 말은?",
+    options: ["break lease", "sublet", "hand over", "vacate"],
+    answer: 0,
+    explain:
+      "계약을 중도에 끊고 나가는 것은 break lease 예요. sublet 은 내가 빌린 집을 다시 남에게 빌려주는 전대를 뜻합니다.",
+  },
+  {
+    id: "pt-g25",
+    band: "A1",
+    section: "grammar",
+    kind: "fill",
+    question:
+      "빈칸에 알맞은 한 단어를 쓰세요. — I have an interview ___ Monday morning.",
+    accept: ["on"],
+    explain:
+      "요일 앞에는 on 을 써요. Monday morning 처럼 요일이 붙으면 in the morning 이 아니라 on Monday morning 이 됩니다. 시각에는 at, 달·연도에는 in 을 써요.",
+  },
+  {
+    id: "pt-g26",
+    band: "A1",
+    section: "grammar",
+    kind: "error",
+    question:
+      "밑줄 친 부분 중 틀린 곳은? — I go / to work / by walk / every morning.",
+    options: ["I go", "to work", "by walk", "every morning"],
+    answer: 2,
+    explain:
+      "걸어서 간다고 할 때는 on foot 이라고 하거나 아예 I walk to work 라고 해요. by 뒤에는 bus·train 처럼 탈것이 옵니다.",
+  },
+  {
+    id: "pt-g27",
+    band: "A1",
+    section: "grammar",
+    question: "빈칸에 알맞은 것은? — ___ any milk in the fridge?",
+    options: ["Is there", "Are there", "There is", "Have there"],
+    answer: 0,
+    explain:
+      "milk 는 셀 수 없는 명사라 Is there 를 써요. 셀 수 있는 복수라면 Are there 입니다.",
+  },
+  {
+    id: "pt-g28",
+    band: "A1",
+    section: "grammar",
+    question: "빈칸에 알맞은 것은? — This is ___ room, not mine.",
+    options: ["she", "her", "hers", "she's"],
+    answer: 1,
+    explain:
+      "명사 앞에서 '그녀의'는 소유격 her 예요. hers 는 뒤에 명사 없이 홀로 쓰는 소유대명사입니다.",
+  },
+  {
+    id: "pt-g29",
+    band: "A2",
+    section: "grammar",
+    kind: "fill",
+    question:
+      "빈칸에 알맞은 한 단어를 쓰세요. — I haven't finished the induction ___.",
+    accept: ["yet"],
+    explain:
+      "현재완료 부정문 끝에서 '아직'을 뜻하는 말은 yet 이에요. 긍정문에서 '벌써'는 already 를 씁니다.",
+  },
+  {
+    id: "pt-g30",
+    band: "A2",
+    section: "grammar",
+    kind: "error",
+    question:
+      "밑줄 친 부분 중 틀린 곳은? — She is used to / work / night shifts, / so she doesn't mind.",
+    options: ["She is used to", "work", "night shifts,", "so she doesn't mind"],
+    answer: 1,
+    explain:
+      "be used to 의 to 는 전치사라 뒤에 동명사 working 이 와요. used to + 동사원형은 '예전에는 ~했다'라는 전혀 다른 표현입니다.",
+  },
+  {
+    id: "pt-g31",
+    band: "A2",
+    section: "grammar",
+    question:
+      "빈칸에 알맞은 것은? — If it ___ tomorrow, the farm work will be cancelled.",
+    options: ["will rain", "rains", "rained", "would rain"],
+    answer: 1,
+    explain:
+      "조건절(If ~) 안에서는 미래의 일도 현재시제로 나타내요. will 은 주절에만 씁니다.",
+  },
+  {
+    id: "pt-g32",
+    band: "A2",
+    section: "grammar",
+    question: "빈칸에 알맞은 것은? — I've been living here ___ six months.",
+    options: ["since", "during", "for", "from"],
+    answer: 2,
+    explain:
+      "기간의 길이 앞에는 for 를 써요. since 는 시작 시점(since March), during 뒤에는 명사가 옵니다.",
+  },
+  {
+    id: "pt-g33",
+    band: "B1",
+    section: "grammar",
+    kind: "fill",
+    question:
+      "빈칸에 알맞은 한 단어를 쓰세요. — The manager, ___ signed my contract, has already left the company.",
+    accept: ["who"],
+    explain:
+      "사람을 꾸미는 주격 관계대명사는 who 예요. 사물이라면 which 나 that 을 씁니다.",
+  },
+  {
+    id: "pt-g34",
+    band: "B1",
+    section: "grammar",
+    kind: "error",
+    question:
+      "밑줄 친 부분 중 틀린 곳은? — I suggested / him to apply / for the second-year visa / last month.",
+    options: [
+      "I suggested",
+      "him to apply",
+      "for the second-year visa",
+      "last month",
+    ],
+    answer: 1,
+    explain:
+      "suggest 는 사람을 바로 목적어로 두지 않아요. I suggested that he apply 또는 I suggested applying 처럼 씁니다.",
+  },
+  {
+    id: "pt-g35",
+    band: "B1",
+    section: "grammar",
+    question:
+      "빈칸에 알맞은 것은? — My bond ___ returned yet, even though I moved out three weeks ago.",
+    options: ["hasn't been", "isn't", "didn't", "wasn't been"],
+    answer: 0,
+    explain:
+      "보증금은 돌려받는 대상이라 수동태이고, yet 과 함께 쓰였으니 현재완료 수동 hasn't been returned 가 됩니다.",
+  },
+  {
+    id: "pt-g36",
+    band: "B1",
+    section: "grammar",
+    question:
+      "빈칸에 알맞은 것은? — She asked me ___ I had finished the paperwork.",
+    options: ["that", "what", "whether", "which"],
+    answer: 2,
+    explain:
+      "예·아니오로 답할 내용을 옮길 때는 whether(또는 if)를 써요. that 은 평서문 내용을 옮길 때 씁니다.",
+  },
+  {
+    id: "pt-u25",
+    band: "A1",
+    section: "usage",
+    kind: "fill",
+    question:
+      "가게에서 값을 물어봅니다. 빈칸에 들어갈 한 단어를 쓰세요. — How ___ is this?",
+    accept: ["much"],
+    explain:
+      "값을 물을 때는 How much 예요. How many 는 개수를 물을 때만 씁니다.",
+  },
+  {
+    id: "pt-u26",
+    band: "A1",
+    section: "usage",
+    kind: "error",
+    question:
+      "밑줄 친 부분 중 틀린 곳은? — Excuse me, / can you / borrow me / your pen?",
+    options: ["Excuse me,", "can you", "borrow me", "your pen?"],
+    answer: 2,
+    explain:
+      "borrow 는 내가 빌려 오는 쪽이에요. 남에게 빌려 달라고 할 때는 lend 를 써서 Can you lend me your pen? 이라고 합니다.",
+  },
+  {
+    id: "pt-u27",
+    band: "A1",
+    section: "usage",
+    question:
+      '주문을 마쳤는데 직원이 "Anything else?"라고 물었어요. 더 필요 없을 때 가장 자연스러운 답은?',
+    options: [
+      "No, that's all, thanks.",
+      "No, finish.",
+      "That's enough for me.",
+      "No more, please.",
+    ],
+    answer: 0,
+    explain:
+      "That's all 은 '이게 다예요'라는 뜻으로 주문을 마무리할 때 씁니다. That's enough 는 상황에 따라 '그만해'처럼 들릴 수 있어요.",
+  },
+  {
+    id: "pt-u28",
+    band: "A1",
+    section: "usage",
+    question:
+      "셰어하우스에 막 들어와 사람들에게 자기소개를 합니다. 가장 자연스러운 것은?",
+    options: [
+      "Hi, I'm Minsu. I just moved in today.",
+      "Hello, my name is Minsu. Nice to meet you first time.",
+      "Hi, I am Minsu and I came here today for live.",
+      "Hello, I'm Minsu, your new roommate person.",
+    ],
+    answer: 0,
+    explain:
+      "이름을 짧게 밝히고 상황을 한 마디 덧붙이면 충분해요. 이사 들어오는 것은 move in 이라고 합니다.",
+  },
+  {
+    id: "pt-u29",
+    band: "A2",
+    section: "usage",
+    kind: "fill",
+    question:
+      "약속에 늦을 것 같아 미리 알립니다. 빈칸에 들어갈 한 단어를 쓰세요. — Sorry, I'm running ___ 10 minutes late.",
+    accept: ["about", "around", "roughly"],
+    explain:
+      "run late 는 '예정보다 늦어지다'라는 뜻이에요. 어림수 앞에는 about 이나 around 를 붙입니다.",
+  },
+  {
+    id: "pt-u30",
+    band: "A2",
+    section: "usage",
+    kind: "error",
+    question:
+      "밑줄 친 부분 중 틀린 곳은? — Can you / explain me / how to use / the washing machine?",
+    options: ["Can you", "explain me", "how to use", "the washing machine?"],
+    answer: 1,
+    explain:
+      "explain 은 사람을 바로 목적어로 두지 않아요. explain to me 처럼 to 를 넣거나 explain how to use it 이라고 씁니다.",
+  },
+  {
+    id: "pt-u31",
+    band: "A2",
+    section: "usage",
+    question:
+      "매니저가 지시한 내용을 제대로 이해했는지 확인하고 싶어요. 가장 자연스러운 표현은?",
+    options: [
+      "So just to check — you want me to close at 9, right?",
+      "Do you mean that? I don't know.",
+      "I understand. Maybe.",
+      "Repeat again, please.",
+    ],
+    answer: 0,
+    explain:
+      "just to check 로 시작해 들은 내용을 되짚으면 오해를 미리 막을 수 있어요. Repeat again 은 뜻이 겹치는 표현이라 어색합니다.",
+  },
+  {
+    id: "pt-u32",
+    band: "A2",
+    section: "usage",
+    question:
+      "중고 거래로 자전거를 사려 합니다. 아직 남았는지 묻는 첫 메시지로 가장 자연스러운 것은?",
+    options: [
+      "Hi, is this still available?",
+      "Hello, I want this. Send me.",
+      "Is the bike alive?",
+      "Hi, do you have it now or not?",
+    ],
+    answer: 0,
+    explain:
+      "중고 거래 첫 메시지는 Is this still available? 이 정석이에요. Gumtree·Marketplace 에서 그대로 씁니다.",
+  },
+  {
+    id: "pt-u33",
+    band: "B1",
+    section: "usage",
+    kind: "fill",
+    question:
+      "집을 나가겠다고 미리 알립니다. 빈칸에 들어갈 한 단어를 쓰세요. — I'm writing to give four weeks' ___ that I'll be moving out.",
+    accept: ["notice"],
+    explain:
+      "퇴실·퇴사를 미리 알리는 것은 give notice 예요. 앞에 기간을 붙여 four weeks' notice 처럼 씁니다.",
+  },
+  {
+    id: "pt-u34",
+    band: "B1",
+    section: "usage",
+    kind: "error",
+    question:
+      "밑줄 친 부분 중 틀린 곳은? — Could you please / let me to know / whether the room / is still available?",
+    options: [
+      "Could you please",
+      "let me to know",
+      "whether the room",
+      "is still available?",
+    ],
+    answer: 1,
+    explain:
+      "let 뒤에는 to 없이 동사원형이 와요. let me know 가 맞습니다. 같은 부류로 make me wait, help me carry 처럼 씁니다.",
+  },
+  {
+    id: "pt-u35",
+    band: "B1",
+    section: "usage",
+    question:
+      '면접 마지막에 "Do you have any questions?"라고 물었어요. 가장 좋은 답은?',
+    options: [
+      "No, nothing. Thank you.",
+      "How much is the pay? That's all I want to know.",
+      "Yes — could you tell me what a typical shift looks like?",
+      "When will you call me? I need to know today.",
+    ],
+    answer: 2,
+    explain:
+      "업무 자체에 관한 질문을 하나 준비해 두면 관심이 있다는 인상을 줘요. 급여만 묻거나 아무것도 묻지 않으면 소극적으로 보일 수 있습니다.",
+  },
+  {
+    id: "pt-u36",
+    band: "B1",
+    section: "usage",
+    question:
+      "동료가 자꾸 마감 정리를 떠넘깁니다. 관계를 지키면서 짚는 가장 적절한 말은?",
+    options: [
+      "You always leave the closing to me. It's not fair.",
+      "Hey, can we split the closing tasks? I've done it on my own the last few shifts.",
+      "I'm not doing the closing anymore.",
+      "Why do you never help me?",
+    ],
+    answer: 1,
+    explain:
+      "요청을 먼저 내놓고 사실만 덧붙이면 상대를 비난하지 않으면서 문제를 짚을 수 있어요. always·never 같은 단정은 방어적인 반응을 부릅니다.",
   },
 ];

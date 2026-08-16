@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Check, X } from "lucide-react";
 import { Panel, Eyebrow, Empty } from "@/components/Panel";
+import { QuestionText } from "@/components/QuestionText";
 import type { PlacementAnswer } from "@/types";
 
 const SECTION_LABEL: Record<PlacementAnswer["section"], string> = {
@@ -29,9 +30,10 @@ function ReviewCard({ answer }: { answer: PlacementAnswer }) {
         </span>
       </div>
 
-      <p className="text-[0.9375rem] font-semibold leading-relaxed [overflow-wrap:anywhere]">
-        {answer.question}
-      </p>
+      <QuestionText
+        text={answer.question}
+        segmented={answer.question.includes(" / ")}
+      />
 
       <dl className="space-y-1.5 text-[0.875rem]">
         {!answer.correct && (
