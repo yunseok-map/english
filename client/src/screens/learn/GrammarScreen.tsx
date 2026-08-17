@@ -41,6 +41,10 @@ function LessonDetail({
   const [submitted, setSubmitted] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
   const startedAt = useRef(Date.now());
+  // 이번에 이 강의를 열고 나서 통계에 반영한 적이 있는지.
+  // "다시 풀기" 는 맞힌 답을 그대로 둔 채 다시 제출하므로, 막지 않으면
+  // 문법 정답률이 부풀려지고 학습 추이에도 같은 세션이 여러 번 찍힌다.
+  const scored = useRef(false);
   const completed = app.completedLessons.includes(lesson.id);
 
   // 고른 답을 그때그때 남긴다. 중간에 나가도 다시 열면 그대로 있다.
@@ -70,6 +74,8 @@ function LessonDetail({
     setSubmitted(true);
     const passed = score >= 4;
     const seconds = (Date.now() - startedAt.current) / 1000;
+    const first = !scored.current;
+    scored.current = true;
     if (passed) haptic.success();
     else haptic.error();
 
@@ -98,18 +104,21 @@ function LessonDetail({
           passed && !state.completedTasks.includes(routeTaskKey("lesson"))
             ? [...state.completedTasks, routeTaskKey("lesson")]
             : state.completedTasks,
-        stats: recordSession(
-          recordStudy(state.stats, {
-            grammarCorrect: state.stats.grammarCorrect + score,
-            grammarTotal: state.stats.grammarTotal + lesson.quiz.length,
-          }),
-          {
-            kind: "grammar",
-            total: lesson.quiz.length,
-            correct: score,
-            seconds,
-          }
-        ),
+        // 통계는 이번 강의의 첫 제출만 반영한다.
+        stats: first
+          ? recordSession(
+              recordStudy(state.stats, {
+                grammarCorrect: state.stats.grammarCorrect + score,
+                grammarTotal: state.stats.grammarTotal + lesson.quiz.length,
+              }),
+              {
+                kind: "grammar",
+                total: lesson.quiz.length,
+                correct: score,
+                seconds,
+              }
+            )
+          : state.stats,
         mistakes,
       };
     });

@@ -1810,4 +1810,278 @@ export const PACKS: ConversationPack[] = [
       "구급차는 주에 따라 유료이고 비용이 수백 달러가 나올 수 있어요. 보험에 ambulance cover가 포함되는지 꼭 확인하세요.",
     ],
   },
+  {
+    id: "pack-payslip",
+    level: "B1",
+    title: "급여·세금 문의",
+    scene:
+      "급여명세서가 이상할 때 매니저에게 확인하고, 퇴직연금과 세금번호까지 챙기는 상황이에요.",
+    icon: "🧾",
+    expressions: [
+      {
+        en: { us: "Could you explain how my pay is calculated?" },
+        ko: "제 급여가 어떻게 계산되는지 설명해 주실 수 있나요?",
+      },
+      {
+        en: { us: "I haven't received my payslip for last fortnight." },
+        ko: "지난 2주치 급여명세서를 못 받았어요.",
+        note: "호주는 주급이나 격주(fortnightly) 급여가 흔해요. fortnight는 2주를 뜻합니다.",
+      },
+      {
+        en: { us: "Is superannuation included in this, or paid on top?" },
+        ko: "이 금액에 퇴직연금이 포함된 건가요, 아니면 별도인가요?",
+        note: "super는 시급에서 떼는 게 아니라 고용주가 별도로 적립해 주는 돈이에요.",
+      },
+      {
+        en: { us: "My tax file number should be on file — could you check?" },
+        ko: "제 세금번호가 등록돼 있을 텐데 확인해 주실 수 있나요?",
+      },
+      {
+        en: { us: "I think I've been taxed at the no-TFN rate." },
+        ko: "세금번호 미제출 세율로 원천징수된 것 같아요.",
+        note: "TFN을 안 내면 최고 세율이 적용돼 실수령액이 확 줄어요.",
+      },
+      {
+        en: { us: "Am I being paid the casual rate with loading?" },
+        ko: "캐주얼 수당이 붙은 시급으로 받고 있는 건가요?",
+        note: "casual loading은 유급휴가가 없는 대신 붙는 할증으로, 보통 25%예요.",
+      },
+      {
+        en: { us: "Do I get penalty rates for Sunday shifts?" },
+        ko: "일요일 근무에는 할증이 붙나요?",
+        note: "penalty rates는 주말·공휴일·야간 근무에 붙는 할증 시급이에요.",
+      },
+      {
+        en: { us: "There seems to be an error in my hours this week." },
+        ko: "이번 주 근무 시간에 착오가 있는 것 같아요.",
+      },
+      {
+        en: { us: "I worked eight hours, but only six are listed." },
+        ko: "8시간 일했는데 6시간만 적혀 있어요.",
+      },
+      {
+        en: { us: "Which super fund does the business pay into?" },
+        ko: "회사는 어느 퇴직연금 펀드로 넣나요?",
+      },
+      {
+        en: { us: "Could you send me a copy of my employment contract?" },
+        ko: "근로계약서 사본을 보내 주실 수 있나요?",
+      },
+      {
+        en: { us: "When does the pay run go through?" },
+        ko: "급여는 언제 지급되나요?",
+        note: "pay run은 회사가 급여를 일괄 지급하는 처리를 말해요.",
+      },
+    ],
+    roleplay: [
+      {
+        speaker: "you",
+        en: {
+          us: "Hi, do you have a minute? I've got a question about my payslip.",
+        },
+        ko: "안녕하세요, 잠깐 시간 되세요? 급여명세서에 대해 여쭤볼 게 있어요.",
+      },
+      {
+        speaker: "staff",
+        en: { us: "Sure, what's up?" },
+        ko: "그럼요, 무슨 일이에요?",
+      },
+      {
+        speaker: "you",
+        en: {
+          us: "I worked eight hours on Sunday, but the payslip only shows six.",
+        },
+        ko: "일요일에 8시간 일했는데 명세서에는 6시간만 나와 있어요.",
+      },
+      {
+        speaker: "staff",
+        en: {
+          us: "Let me pull up the roster. You're right — the last two hours weren't entered.",
+        },
+        ko: "근무표를 확인해 볼게요. 맞네요, 마지막 두 시간이 입력이 안 됐어요.",
+      },
+      {
+        speaker: "you",
+        en: {
+          us: "Thanks. Will that come through this fortnight or the next?",
+        },
+        ko: "감사해요. 그건 이번 2주치에 들어오나요, 다음 번인가요?",
+      },
+      {
+        speaker: "staff",
+        en: {
+          us: "I'll process it as an adjustment, so it'll be in next Thursday's pay run.",
+        },
+        ko: "조정 처리해서 다음 주 목요일 급여에 함께 넣을게요.",
+      },
+      {
+        speaker: "you",
+        en: {
+          us: "Great. One more thing — is superannuation on top of my hourly rate?",
+        },
+        ko: "좋아요. 하나만 더요, 퇴직연금은 제 시급과 별도인가요?",
+      },
+      {
+        speaker: "staff",
+        en: {
+          us: "Yes, super is paid separately into your fund. It's not taken out of your wage.",
+        },
+        ko: "네, 퇴직연금은 별도로 펀드에 넣어 드려요. 급여에서 빠지는 게 아니에요.",
+      },
+      {
+        speaker: "you",
+        en: { us: "Good to know. Could you confirm which fund it's going to?" },
+        ko: "알겠어요. 어느 펀드로 들어가는지 확인해 주실 수 있나요?",
+      },
+      {
+        speaker: "staff",
+        en: {
+          us: "It's the default fund, but you can nominate your own — just fill in this form.",
+        },
+        ko: "기본 펀드로 들어가는데, 원하시면 직접 지정할 수 있어요. 이 양식만 작성해 주세요.",
+      },
+    ],
+    auNotes: [
+      "급여명세서(payslip)는 지급일로부터 1근무일 안에 받아야 해요. 안 주면 요구할 권리가 있습니다.",
+      "superannuation(줄여서 super)은 워홀러도 대상이에요. 출국할 때 DASP 신청으로 돌려받을 수 있으니 펀드 정보를 남겨 두세요.",
+      "TFN(세금번호)은 도착 후 ATO 홈페이지에서 무료로 신청해요. 내지 않으면 최고 세율로 떼입니다.",
+    ],
+  },
+  {
+    id: "pack-bond",
+    level: "B1",
+    title: "퇴거 통보·보증금 반환",
+    scene:
+      "방을 빼겠다고 통보하고, 최종 점검을 거쳐 보증금을 전액 돌려받는 상황이에요.",
+    icon: "🔑",
+    expressions: [
+      {
+        en: { us: "I'd like to give notice that I'm moving out." },
+        ko: "퇴거하겠다고 통보드리려고요.",
+        note: "give notice가 '미리 통보하다'예요. 보통 서면으로 남깁니다.",
+      },
+      {
+        en: { us: "How much notice do I need to give?" },
+        ko: "며칠 전에 미리 알려야 하나요?",
+      },
+      {
+        en: { us: "My last day will be the thirtieth." },
+        ko: "마지막 날은 30일이 될 거예요.",
+      },
+      {
+        en: { us: "Could we do the final inspection together?" },
+        ko: "최종 점검을 같이 하면 좋겠어요.",
+      },
+      {
+        en: { us: "I'd like my bond back in full." },
+        ko: "보증금을 전액 돌려받고 싶어요.",
+        note: "bond가 임대 보증금이에요. 미국식 deposit에 해당합니다.",
+      },
+      {
+        en: { us: "The mark on the wall was there when I moved in." },
+        ko: "벽의 자국은 제가 들어올 때부터 있었어요.",
+      },
+      {
+        en: { us: "I have photos from the condition report." },
+        ko: "입주 점검 보고서 사진이 있어요.",
+        note: "condition report는 입주 시 상태를 기록한 서류예요. 보증금 분쟁의 핵심 근거입니다.",
+      },
+      {
+        en: { us: "I've had the carpet professionally cleaned." },
+        ko: "카펫은 전문 업체에 청소를 맡겼어요.",
+      },
+      {
+        en: { us: "Is there anything else I need to fix before I go?" },
+        ko: "나가기 전에 더 고쳐야 할 게 있을까요?",
+      },
+      {
+        en: { us: "How long does the bond refund usually take?" },
+        ko: "보증금 환급은 보통 얼마나 걸리나요?",
+      },
+      {
+        en: { us: "Could you send the refund to this account?" },
+        ko: "이 계좌로 환급해 주실 수 있나요?",
+      },
+      {
+        en: { us: "This is normal wear and tear, isn't it?" },
+        ko: "이건 일반적인 생활 마모 아닌가요?",
+        note: "wear and tear(자연 마모)는 보증금에서 뗄 수 없는 항목이에요.",
+      },
+    ],
+    roleplay: [
+      {
+        speaker: "you",
+        en: {
+          us: "Hi, I wanted to let you know I'll be moving out at the end of the month.",
+        },
+        ko: "안녕하세요, 이달 말에 방을 뺀다고 말씀드리려고요.",
+      },
+      {
+        speaker: "staff",
+        en: {
+          us: "Thanks for telling me. Can you put that in writing? I need two weeks' notice.",
+        },
+        ko: "알려 주셔서 고마워요. 서면으로 주실 수 있나요? 2주 전 통보가 필요해요.",
+      },
+      {
+        speaker: "you",
+        en: {
+          us: "Sure, I'll email you tonight. My last day will be the thirtieth.",
+        },
+        ko: "네, 오늘 밤에 이메일 보낼게요. 마지막 날은 30일이에요.",
+      },
+      {
+        speaker: "staff",
+        en: {
+          us: "Perfect. We'll do a final inspection on the thirty-first, if that suits.",
+        },
+        ko: "좋아요. 괜찮으시면 31일에 최종 점검을 할게요.",
+      },
+      {
+        speaker: "you",
+        en: {
+          us: "That works. I've already had the carpet professionally cleaned.",
+        },
+        ko: "괜찮아요. 카펫은 이미 전문 업체에 청소를 맡겼어요.",
+      },
+      {
+        speaker: "staff",
+        en: {
+          us: "Good. There's a mark on the bedroom wall I'll need to look at.",
+        },
+        ko: "좋네요. 침실 벽에 자국이 하나 있어서 확인은 해야 해요.",
+      },
+      {
+        speaker: "you",
+        en: {
+          us: "That was there when I moved in — it's in the condition report with photos.",
+        },
+        ko: "그건 제가 들어올 때부터 있었어요. 입주 점검 보고서에 사진과 함께 적혀 있어요.",
+      },
+      {
+        speaker: "staff",
+        en: { us: "If it's on the report, it won't come out of your bond." },
+        ko: "보고서에 있으면 보증금에서 빠지지 않아요.",
+      },
+      {
+        speaker: "you",
+        en: {
+          us: "Thanks. How long does the refund usually take once we've signed off?",
+        },
+        ko: "감사해요. 양쪽이 서명하고 나면 환급까지 보통 얼마나 걸리나요?",
+      },
+      {
+        speaker: "staff",
+        en: {
+          us: "Usually about a week if we both agree. I'll send the form for your bank details.",
+        },
+        ko: "둘 다 동의하면 보통 일주일쯤이에요. 계좌 정보 적는 양식을 보내 드릴게요.",
+      },
+    ],
+    auNotes: [
+      "정식 임대의 bond는 집주인이 아니라 주 정부 기관(빅토리아는 RTBA)에 예치돼요. 환급은 양쪽이 서명해야 진행됩니다.",
+      "입주 첫날 condition report에 흠집을 전부 적고 사진을 찍어 두세요. 나갈 때 보증금을 지킬 가장 확실한 근거예요.",
+      "통보 기간(notice period)은 계약서에 적혀 있고 보통 2~4주예요. 말로만 하지 말고 이메일이라도 남겨 두세요.",
+    ],
+  },
 ];

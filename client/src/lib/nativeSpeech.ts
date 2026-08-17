@@ -1,4 +1,4 @@
-import { registerPlugin } from "@capacitor/core";
+import { Capacitor, registerPlugin } from "@capacitor/core";
 import { isNative } from "@/lib/native";
 
 /**
@@ -32,7 +32,7 @@ export const NativeSpeech =
   registerPlugin<NativeSpeechPlugin>("SpeechRecognition");
 
 export function hasNativeSpeech() {
-  return isNative;
+  return isNative && Capacitor.isPluginAvailable("SpeechRecognition");
 }
 
 export async function ensureNativeSpeechPermission() {

@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { stopSpeaking } from "@/lib/speech";
 import { WordsScreen } from "@/screens/learn/WordsScreen";
 import { GrammarScreen } from "@/screens/learn/GrammarScreen";
 import { PronunciationScreen } from "@/screens/learn/PronunciationScreen";
@@ -11,6 +13,14 @@ export type LearnSection =
   | "packs"
   | "mistakes";
 
+/**
+ * 홈의 오늘의 루트에서 넘어올 때 "무엇을 하러 왔는지".
+ *
+ * 예전에는 탭만 열어 줘서 "복습 카드 12장" 을 눌러도 단어 탭 첫 화면이 뜨고,
+ * 거기서 모드를 다시 골라야 했다. 누른 그 학습이 바로 시작되게 한다.
+ */
+export type LearnIntent = "words" | "review" | "speak" | "dictation";
+
 const TABS: Array<{ id: LearnSection; label: string }> = [
   { id: "words", label: "단어" },
   { id: "grammar", label: "문법" },
@@ -22,10 +32,20 @@ const TABS: Array<{ id: LearnSection; label: string }> = [
 export function LearnScreen({
   section,
   onSection,
+  intent,
+  onIntentDone,
 }: {
   section: LearnSection;
   onSection: (next: LearnSection) => void;
+  /** 홈에서 특정 학습을 눌러 들어왔을 때만 채워진다. */
+  intent?: LearnIntent;
+  onIntentDone?: () => void;
 }) {
+  // 학습 탭을 옮길 때도 읽던 소리를 끊는다.
+  useEffect(() => {
+    stopSpeaking();
+  }, [section]);
+
   return (
     <div className="space-y-4">
       <div className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -46,7 +66,9 @@ export function LearnScreen({
           ))}
         </div>
       </div>
-      {section === "words" && <WordsScreen />}
+      {section === "words" && (
+        <WordsScreen intent={intent} onIntentDone={onIntentDone} />
+      )}
       {section === "grammar" && <GrammarScreen />}
       {section === "pronunciation" && <PronunciationScreen />}
       {section === "packs" && <PacksScreen />}

@@ -90,6 +90,11 @@ export type DictationSentence = {
 
 export type PronunciationCourse = {
   id: string;
+  /**
+   * 난이도. 발음 코스만 레벨이 없어서 모든 사용자에게 같은 순서로 나왔다.
+   * 다른 학습 탭처럼 내 레벨을 앞으로 당겨 준다.
+   */
+  level: Level;
   title: string;
   /** 한국어 코칭 팁 */
   tip: string;

@@ -11,6 +11,18 @@ import { allLevelsLoaded, words } from "@/data";
 
 const DAY = 86400000;
 
+/** 번역 캐시 상한. 이걸 안 걸면 변환기를 쓸수록 백업 파일이 계속 커진다. */
+const CACHE_LIMIT = 500;
+
+function capCache(raw: unknown): Record<string, string> {
+  if (!raw || typeof raw !== "object") return {};
+  const pairs = Object.entries(raw as Record<string, unknown>).filter(
+    (pair): pair is [string, string] => typeof pair[1] === "string"
+  );
+  // 객체 키 순서 = 삽입 순서. 뒤쪽이 최근이므로 뒤에서 자른다.
+  return Object.fromEntries(pairs.slice(-CACHE_LIMIT));
+}
+
 /** SM-2(v2) 카드를 FSRS(v3) 카드로 옮긴다. 남은 간격은 그대로 존중한다. */
 function toFsrsCard(raw: any, id: string): SrsCard | null {
   if (!raw || typeof raw !== "object") return null;
@@ -176,6 +188,9 @@ function migrateResume(raw: any): AppState["resume"] {
       ? raw.misses
           .filter((m: any) => m && typeof m.label === "string")
           .map((m: any) => ({
+            // id 를 살려 둔다. 이게 빠지면 복원한 세션에서
+            // "틀린 것만 다시 풀기" 가 문제를 못 찾는다.
+            id: typeof m.id === "string" ? m.id : undefined,
             label: m.label,
             detail: typeof m.detail === "string" ? m.detail : undefined,
           }))
@@ -217,6 +232,8 @@ export function migrateState(raw: unknown): AppState {
         ? [{ level, at: new Date().toISOString(), source: "migrated" as const }]
         : [];
 
+    const sameMonth = value.stats?.llmMonth === monthKey();
+
     return {
       ...DEFAULT_STATE,
       ...value,
@@ -242,10 +259,7 @@ export function migrateState(raw: unknown): AppState {
         ? value.completedPacks
         : [],
       bookmarks: Array.isArray(value.bookmarks) ? value.bookmarks : [],
-      translationCache:
-        value.translationCache && typeof value.translationCache === "object"
-          ? value.translationCache
-          : {},
+      translationCache: capCache(value.translationCache),
       chat: Array.isArray(value.chat) ? value.chat : [],
       resume: migrateResume(value.resume),
       myEntries: Array.isArray(value.myEntries)
@@ -263,9 +277,14 @@ export function migrateState(raw: unknown): AppState {
         sessions: Array.isArray(value.stats?.sessions)
           ? value.stats.sessions.slice(-30)
           : [],
-        llmCalls: Number(value.stats?.llmCalls) || 0,
-        llmMonth:
-          value.stats?.llmMonth === monthKey() ? monthKey() : monthKey(),
+        // 달이 바뀌면 사용량을 0으로 되돌린다.
+        //
+        // 예전에는 삼항 양쪽이 똑같이 monthKey() 였다. 그래서 앱을 켤 때마다
+        // 저장된 달이 이번 달로 덮어써지고 llmCalls 는 그대로 넘어와,
+        // llmUsage 가 달이 바뀐 걸 영영 알아채지 못했다. 한도에 한 번 닿으면
+        // 그 뒤로 AI 대화가 계속 막힌 채였다.
+        llmCalls: sameMonth ? Number(value.stats?.llmCalls) || 0 : 0,
+        llmMonth: sameMonth ? String(value.stats.llmMonth) : monthKey(),
       },
     };
   } catch {

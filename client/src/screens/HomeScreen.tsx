@@ -4,6 +4,7 @@ import {
   Check,
   ChevronRight,
   CircleAlert,
+  Ear,
   Headphones,
   MessagesSquare,
   Mic,
@@ -31,7 +32,7 @@ import {
   resumeSummary,
 } from "@/lib/resume";
 import type { Screen } from "@/components/BottomNav";
-import type { LearnSection } from "@/screens/learn/LearnScreen";
+import type { LearnIntent, LearnSection } from "@/screens/learn/LearnScreen";
 
 type Track = "word" | "review" | "grammar" | "talk" | "mistake";
 
@@ -42,6 +43,8 @@ type RouteItem = {
   title: string;
   detail: string;
   section: LearnSection;
+  /** 학습 화면이 이 모드로 바로 시작한다. 없으면 그 탭의 첫 화면. */
+  intent?: LearnIntent;
 };
 
 const TRACK_STYLE: Record<Track, { bg: string; fg: string }> = {
@@ -63,7 +66,7 @@ export function HomeScreen({
   openScreen,
   startRetest,
 }: {
-  openLearn: (section: LearnSection) => void;
+  openLearn: (section: LearnSection, intent?: LearnIntent) => void;
   openScreen: (screen: Screen) => void;
   startRetest: () => void;
 }) {
@@ -96,6 +99,7 @@ export function HomeScreen({
         ? `${dt(route.newWords[0].word, dialect)} 부터 시작`
         : "오늘 배정을 모두 마쳤어요",
       section: "words",
+      intent: "words",
     },
     {
       task: "review",
@@ -106,6 +110,7 @@ export function HomeScreen({
         : "복습 대기 없음",
       detail: route.dueCount ? "잊어버리기 직전이에요" : "내일 다시 만나요",
       section: "words",
+      intent: "review",
     },
     {
       task: "lesson",
@@ -126,6 +131,20 @@ export function HomeScreen({
       section: "packs",
     },
   ];
+
+  // 받아쓰기. 온보딩이 "매일 이렇게 훈련해요"에서 약속하는 항목인데
+  // 정작 오늘의 루트에는 없어서, 단어 탭 안쪽까지 들어가야만 만날 수 있었다.
+  if (route.dictation.length > 0) {
+    items.push({
+      task: "dictation",
+      track: "review",
+      icon: Ear,
+      title: `받아쓰기 ${route.dictation.length}문장`,
+      detail: "듣고 그대로 적어 보기",
+      section: "words",
+      intent: "dictation",
+    });
+  }
 
   // 어제 틀린 게 있으면 오늘 루트 맨 앞에 끼워 넣는다.
   if (route.mistakes.length > 0) {
@@ -151,6 +170,7 @@ export function HomeScreen({
       title: "소리 내어 말해 보기",
       detail: `${route.speaking.length}개 표현 · 발음 점수 확인`,
       section: "words",
+      intent: "speak",
     });
   }
   const doneCount = items.filter(item => isTaskDone(app, item.task)).length;
@@ -304,7 +324,7 @@ export function HomeScreen({
           <div className="min-w-0 flex-1">
             <strong className="text-[0.9375rem]">레벨 테스트를 해보세요</strong>
             <p className="mt-0.5 text-[0.8125rem] text-muted-foreground">
-              7분이면 내 레벨에 맞는 루트가 만들어져요.
+              36문항 · 약 10분이면 내 레벨에 맞는 루트가 만들어져요.
             </p>
           </div>
           <Button size="sm" onClick={startRetest}>
@@ -333,7 +353,7 @@ export function HomeScreen({
             return (
               <button
                 key={item.task}
-                onClick={() => openLearn(item.section)}
+                onClick={() => openLearn(item.section, item.intent)}
                 className="flex w-full items-center gap-3.5 rounded-2xl border bg-card p-3.5 text-left transition-all active:scale-[0.99]"
               >
                 <span

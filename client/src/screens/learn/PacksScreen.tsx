@@ -3,8 +3,9 @@ import { Check, ChevronRight, Play, Save, Volume2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Panel, Eyebrow, SectionTitle, Empty } from "@/components/Panel";
+import { ProgressBar } from "@/components/Progress";
 import { useApp } from "@/state/context";
-import { PACKS } from "@/data";
+import { dataRevision, packs } from "@/data";
 import type { ConversationPack } from "@/data/types";
 import { dt } from "@/lib/dialect";
 import { createSentenceCard, recordSession, recordStudy } from "@/lib/engine";
@@ -54,7 +55,9 @@ function PackDetail({
     const next = Math.min(revealCount + 1, pack.roleplay.length);
     setRevealCount(next);
     const line = pack.roleplay[next - 1];
-    if (line?.speaker === "staff")
+    // 상대 대사 자동 재생도 "자동 발음" 설정을 따른다. 예전에는 설정을 꺼도
+    // 회화팩에서만 소리가 나서, 조용히 볼 방법이 없었다.
+    if (line?.speaker === "staff" && app.settings.autoSpeak)
       speak(dt(line.en, dialect), app.settings.rate);
     if (next >= pack.roleplay.length) {
       const seconds = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
@@ -98,9 +101,25 @@ function PackDetail({
 
       {/* 롤플레이 */}
       <Panel className="space-y-3">
-        <Eyebrow className="text-muted-foreground">
-          역할극 — 한 줄씩 따라가요
-        </Eyebrow>
+        {/*
+          어디까지 왔는지 보여 준다. 예전에는 대사만 쌓여서 앞으로 몇 줄이
+          남았는지 알 수 없었고, 다른 학습 화면에는 다 있는 진행 표시가
+          회화팩에만 없었다.
+        */}
+        <div className="flex items-baseline justify-between gap-2">
+          <Eyebrow className="text-muted-foreground">
+            역할극 — 한 줄씩 따라가요
+          </Eyebrow>
+          <span
+            className="font-mono text-[0.75rem] tabular-nums text-muted-foreground"
+            aria-label={`${pack.roleplay.length}줄 중 ${revealCount}번째`}
+          >
+            {revealCount}/{pack.roleplay.length}
+          </span>
+        </div>
+        <div className="text-primary">
+          <ProgressBar ratio={revealCount / pack.roleplay.length} />
+        </div>
         <div className="space-y-2">
           {pack.roleplay.slice(0, revealCount).map((line, i) => {
             const sentence = dt(line.en, dialect);
@@ -201,20 +220,23 @@ export function PacksScreen() {
   const { app } = useApp();
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
+  const list = packs();
+  // dataRevision 을 deps 에 둔다. 회화팩은 별도 청크라 화면이 먼저 뜨고
+  // 조금 뒤에 채워지는데, 이게 없으면 빈 목록에서 다시 그려지지 않는다.
   const sorted = useMemo(() => {
     const myIndex = LEVEL_ORDER.indexOf(app.profile.level);
-    return [...PACKS].sort(
+    return [...list].sort(
       (a, b) =>
         Math.abs(LEVEL_ORDER.indexOf(a.level) - myIndex) -
         Math.abs(LEVEL_ORDER.indexOf(b.level) - myIndex)
     );
-  }, [app.profile.level]);
+  }, [app.profile.level, dataRevision()]);
 
-  const selected = selectedId ? PACKS.find(p => p.id === selectedId) : null;
+  const selected = selectedId ? list.find(p => p.id === selectedId) : null;
   if (selected)
     return <PackDetail pack={selected} onBack={() => setSelectedId(null)} />;
 
-  if (PACKS.length === 0)
+  if (list.length === 0)
     return (
       <Empty
         title="회화팩 준비 중"
@@ -224,7 +246,7 @@ export function PacksScreen() {
 
   return (
     <div className="space-y-2.5">
-      <SectionTitle aside={`${app.completedPacks.length}/${PACKS.length}`}>
+      <SectionTitle aside={`${app.completedPacks.length}/${list.length}`}>
         상황별 회화팩
       </SectionTitle>
       <div className="space-y-2">

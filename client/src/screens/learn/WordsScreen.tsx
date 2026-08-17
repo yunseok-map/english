@@ -28,9 +28,9 @@ import { WordDetail } from "@/screens/learn/WordDetail";
 import { MyWordsPanel } from "@/screens/learn/MyWordsPanel";
 import { useApp } from "@/state/context";
 import {
-  DICTATION,
   TOPIC_LABEL,
   dataRevision,
+  dictation as allDictation,
   words as allWords,
 } from "@/data";
 import type { DictationSentence, TopicId, WordEntry } from "@/data/types";
@@ -57,6 +57,7 @@ import {
 import { haptic } from "@/lib/haptics";
 import { LEVEL_LABEL, LEVEL_ORDER } from "@/lib/level";
 import { clearMistake, noteMistake, routeTaskKey } from "@/lib/route";
+import type { LearnIntent } from "@/screens/learn/LearnScreen";
 import type { Level } from "@/types";
 
 type SessionMode =
@@ -90,6 +91,14 @@ const MODE_LABEL: Record<SessionMode, string> = Object.fromEntries(
   MODES.map(m => [m.id, m.label])
 ) as Record<SessionMode, string>;
 
+/** 홈에서 누른 학습 → 바로 시작할 모드. 새 단어·복습은 둘 다 플래시카드다. */
+const INTENT_MODE: Record<LearnIntent, SessionMode> = {
+  words: "card",
+  review: "card",
+  speak: "speak",
+  dictation: "dictation",
+};
+
 type Filters = {
   levels: Level[];
   topic: TopicId | "all";
@@ -98,7 +107,14 @@ type Filters = {
   missed: boolean;
 };
 
-export function WordsScreen() {
+export function WordsScreen({
+  intent,
+  onIntentDone,
+}: {
+  /** 홈에서 특정 학습을 눌러 들어왔으면 그 모드로 바로 시작한다. */
+  intent?: LearnIntent;
+  onIntentDone?: () => void;
+} = {}) {
   const { app, update, fullData } = useApp();
   const dialect = app.settings.dialect;
 
@@ -253,7 +269,7 @@ export function WordsScreen() {
     if (!resumePoint) return;
     if (resumePoint.mode === "dictation") {
       const set = resumePoint.ids
-        .map(id => DICTATION.find(d => d.id === id))
+        .map(id => allDictation().find(d => d.id === id))
         .filter((d): d is DictationSentence => Boolean(d));
       if (set.length !== resumePoint.ids.length)
         return toast("이어 할 문장을 찾지 못했어요. 새로 시작해 주세요.");
@@ -279,17 +295,25 @@ export function WordsScreen() {
     shownAt.current = Date.now();
   };
 
-  // 홈에서 "계속"으로 들어왔으면 한 번 더 누르게 하지 않고 바로 이어 간다.
+  // 홈에서 들어온 의도를 처리한다. 이어하기가 1순위 — 하다 만 게 있으면
+  // 그걸 먼저 끝내는 게 맞다. 그다음이 홈에서 누른 학습이다.
   useEffect(() => {
-    if (hasResumeRequest()) resumeSession();
-    // 마운트 때 한 번만. resumeSession 은 이 시점의 값으로 충분하다.
+    if (hasResumeRequest()) {
+      resumeSession();
+      return;
+    }
+    if (!intent) return;
+    onIntentDone?.();
+    startSession(INTENT_MODE[intent]);
+    // 마운트 때 한 번만. 이 시점의 값으로 충분하다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const startSession = (nextMode: SessionMode) => {
     if (nextMode === "dictation") {
-      const levelPool = DICTATION.filter(d => d.level === app.profile.level);
-      const list = levelPool.length ? levelPool : DICTATION;
+      const pool = allDictation();
+      const levelPool = pool.filter(d => d.level === app.profile.level);
+      const list = levelPool.length ? levelPool : pool;
       if (!list.length) return toast("받아쓰기 문장이 준비되지 않았어요.");
       const day = Math.floor(Date.now() / 86400000);
       const start = (day * 7) % list.length;
@@ -353,7 +377,10 @@ export function WordsScreen() {
 
     update(state => {
       const tasks = new Set(state.completedTasks);
-      if (mode === "dictation" || hadNew) tasks.add(routeTaskKey("words"));
+      // 받아쓰기는 제 몫으로 센다. 예전에는 "새 단어" 칸을 대신 채워서
+      // 단어를 하나도 안 외웠는데 오늘의 단어가 끝난 것처럼 보였다.
+      if (mode === "dictation") tasks.add(routeTaskKey("dictation"));
+      else if (hadNew) tasks.add(routeTaskKey("words"));
       if (hadReview) tasks.add(routeTaskKey("review"));
       if (mode === "speak") tasks.add(routeTaskKey("speak"));
       // 끝냈으니 이어할 지점은 지운다.
@@ -828,6 +855,19 @@ export function WordsScreen() {
               rate={app.settings.rate}
               onDone={(score, detail) => {
                 const ok = score >= 70;
+                // 말하기 점수도 발음 통계에 넣는다. 예전에는 발음 탭에서 낸
+                // 점수만 쌓여서, 말하기 연습을 아무리 해도 프로필의
+                // "평균 발음"은 계속 "—" 였다.
+                update(state => ({
+                  ...state,
+                  stats: {
+                    ...state.stats,
+                    pronunciationScores: [
+                      ...state.stats.pronunciationScores,
+                      score,
+                    ].slice(-50),
+                  },
+                }));
                 submitWord(word, {
                   correct: ok,
                   rating:
@@ -848,8 +888,13 @@ export function WordsScreen() {
   const selected = selectedId ? pool.find(w => w.id === selectedId) : null;
   const levelWords = pool.filter(w => w.level === app.profile.level);
   const learnedInLevel = levelWords.filter(w => app.srs[`word-${w.id}`]).length;
+  // 기본값(내 레벨만 보기)은 "내가 건 필터"가 아니다. 예전에는 이걸 1로 세서
+  // 아무것도 안 건드렸는데 필터 배지에 1이 붙어 있었다.
+  const levelFilterActive =
+    filters.levels.length !== LEVEL_ORDER.length &&
+    !(filters.levels.length === 1 && filters.levels[0] === app.profile.level);
   const activeFilterCount =
-    (filters.levels.length === LEVEL_ORDER.length ? 0 : 1) +
+    (levelFilterActive ? 1 : 0) +
     (filters.topic === "all" ? 0 : 1) +
     (filters.bookmarked ? 1 : 0) +
     (filters.unlearned ? 1 : 0) +

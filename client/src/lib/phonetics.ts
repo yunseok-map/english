@@ -213,8 +213,3 @@ export function scorePronunciation(
 
   return { score, issues, exact };
 }
-
-/** 예전 호출부 호환용. 점수만 필요할 때 쓴다. */
-export function pronunciationScore(target: string, spoken: string) {
-  return scorePronunciation(target, spoken).score;
-}

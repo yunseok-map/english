@@ -64,8 +64,8 @@ const KNOWN_VOICES: Record<string, string[]> = {
     "Nathan",
     "Tom",
   ],
+  // 표기는 미국식·호주식 둘뿐이다(lib/dialect.ts). 영국 목록은 쓰이지 않는다.
   "en-au": ["Karen", "Lee", "Matilda"],
-  "en-gb": ["Kate", "Serena", "Stephanie", "Daniel", "Oliver", "Arthur"],
 };
 
 /** 이름 뒤에 붙는 (Enhanced)·(Premium) 같은 꼬리표를 떼고 본이름만 남긴다. */
@@ -262,6 +262,21 @@ export async function hasExactVoice(localeOverride?: string) {
     .some(v => normalizeLang(v.lang) === locale);
 }
 
+function webSpeak(text: string, locale: string, rate: number) {
+  if (!("speechSynthesis" in window)) {
+    toast.error("이 기기에서는 음성 듣기를 지원하지 않아요.");
+    return;
+  }
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  const voice = pickWebVoice(locale);
+  utterance.voice = voice;
+  utterance.lang = voice?.lang ?? locale;
+  utterance.rate = rate;
+  utterance.pitch = 1;
+  window.speechSynthesis.speak(utterance);
+}
+
 /** 현재 다이얼렉트(설정)의 보이스로 읽어 준다. localeOverride로 한국어("ko-KR") 등 지정 가능. */
 export function speak(text: string, rate = 0.95, localeOverride?: string) {
   const locale = localeOverride ?? ttsLocale(currentDialect);
@@ -272,30 +287,18 @@ export function speak(text: string, rate = 0.95, localeOverride?: string) {
       language: locale,
       rate,
       voiceId: preferredFor(locale) || undefined,
-    }).catch(() => undefined);
+      // 네이티브가 튕기면 웹 합성으로라도 읽어 준다. 예전에는 여기서 그냥
+      // 끝나서 아무 소리도 안 났고, 화면에도 아무 표시가 없었다.
+    }).catch(() => webSpeak(text, locale, rate));
     return;
   }
 
-  if (!("speechSynthesis" in window)) {
-    toast.error("이 기기에서는 음성 듣기를 지원하지 않아요.");
-    return;
-  }
-  const locale2 = locale;
-  window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
-  const voice = pickWebVoice(locale2);
-  utterance.voice = voice;
-  utterance.lang = voice?.lang ?? locale2;
-  utterance.rate = rate;
-  utterance.pitch = 1;
-  window.speechSynthesis.speak(utterance);
+  webSpeak(text, locale, rate);
 }
 
+/** 읽던 것을 멈춘다. 화면을 벗어날 때 부른다. 양쪽 경로를 모두 끈다. */
 export function stopSpeaking() {
-  if (hasNativeTts()) {
-    void NativeTts.stop().catch(() => undefined);
-    return;
-  }
+  if (hasNativeTts()) void NativeTts.stop().catch(() => undefined);
   if ("speechSynthesis" in window) window.speechSynthesis.cancel();
 }
 

@@ -1,4 +1,4 @@
-import { registerPlugin } from "@capacitor/core";
+import { Capacitor, registerPlugin } from "@capacitor/core";
 import { isNative } from "@/lib/native";
 
 /**
@@ -28,6 +28,12 @@ export type NativeTtsPlugin = {
 
 export const NativeTts = registerPlugin<NativeTtsPlugin>("NativeTts");
 
+/**
+ * 네이티브 TTS 를 쓸 수 있는지.
+ *
+ * "아이폰이다" 만으로는 부족하다. 빌드에 플러그인이 안 들어간 적이 있으면
+ * 호출이 "not implemented" 로 튕기는데, 그 경우 웹 합성으로 넘어가야 한다.
+ */
 export function hasNativeTts() {
-  return isNative;
+  return isNative && Capacitor.isPluginAvailable("NativeTts");
 }

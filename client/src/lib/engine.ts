@@ -20,8 +20,20 @@ export function daysTo(date: string) {
 export function formatDate(date: Date) {
   return date.toLocaleDateString("ko-KR", { month: "long", day: "numeric" });
 }
+/**
+ * 로컬 기준 "YYYY-MM-DD".
+ *
+ * toISOString() 을 쓰면 UTC 라서 한국(UTC+9)에서는 하루가 **오전 9시에** 바뀐다.
+ * 아침 8시에 공부하면 어제 몫으로 들어가고, 9시가 지나면 오늘의 루트가 초기화됐다.
+ * 연속 학습일·잔디·오늘의 할 일이 전부 이 함수에 걸려 있으므로 로컬 달력을 쓴다.
+ */
+function localDayKey(date: Date) {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
 export function todayKey() {
-  return new Date().toISOString().slice(0, 10);
+  return localDayKey(new Date());
 }
 export function normalize(s: string) {
   return s
@@ -49,9 +61,7 @@ export function levenshtein(a: string, b: string) {
 }
 
 export function dayKey(offsetDays = 0) {
-  return new Date(Date.now() - offsetDays * 86400000)
-    .toISOString()
-    .slice(0, 10);
+  return localDayKey(new Date(Date.now() - offsetDays * 86400000));
 }
 
 /**
@@ -76,7 +86,6 @@ export function recordStudy(
   return {
     ...stats,
     ...extra,
-    minutes: stats.minutes + 1,
     lastStudyDate: today,
     streak,
     studyDates,
@@ -90,10 +99,6 @@ export function recordSession(
 ): AppState["stats"] {
   const next: SessionRecord = { ...session, at: Date.now() };
   return { ...stats, sessions: [...stats.sessions, next].slice(-30) };
-}
-
-export function sessionsOfKind(state: AppState, kind: SessionKind) {
-  return state.stats.sessions.filter(s => s.kind === kind);
 }
 
 // ---- SRS ----

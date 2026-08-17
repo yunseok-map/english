@@ -33,12 +33,46 @@ const fallback: TranslationProvider = {
   id: "fallback",
   translate: async (text, _key, dialect) => fallbackTranslate(text, dialect),
 };
+/**
+ * 마지막 번역 실패 사유.
+ *
+ * 예전에는 어떤 엔진이 왜 실패했는지 아무 데도 남지 않았다. 키를 잘못 넣어도
+ * 조용히 내장 엔진 결과가 나와서, 사용자는 번역기가 원래 그런 줄 알았다.
+ * 고른 엔진(첫 시도)의 실패만 남긴다 — 예비 엔진 오류까지 띄우면 시끄럽다.
+ */
+let lastTranslationError: string | null = null;
+export function takeTranslationError() {
+  const error = lastTranslationError;
+  lastTranslationError = null;
+  return error;
+}
+
+/** Gemini 로 번역한 횟수. 대화와 같은 키·같은 한도를 쓰므로 함께 센다. */
+let translationLlmCalls = 0;
+export function takeTranslationLlmCalls() {
+  const count = translationLlmCalls;
+  translationLlmCalls = 0;
+  return count;
+}
+
+/** HTTP 상태를 사람이 읽을 수 있는 이유로 바꾼다. */
+function httpReason(engine: string, status: number) {
+  if (status === 400) return `${engine}: 요청 형식이 맞지 않아요.`;
+  if (status === 401 || status === 403)
+    return `${engine}: API 키가 올바르지 않아요. 설정에서 확인해 주세요.`;
+  if (status === 429)
+    return `${engine}: 사용 한도를 넘었어요. 잠시 뒤에 다시 해 주세요.`;
+  if (status >= 500) return `${engine}: 서버가 응답하지 않아요.`;
+  return `${engine}: 응답 오류 (${status})`;
+}
+
 const myMemory: TranslationProvider = {
   id: "mymemory",
   translate: async (text, _key, dialect) => {
     const response = await fetch(
       `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=ko|en`
     );
+    if (!response.ok) throw new Error(httpReason("MyMemory", response.status));
     const data = await response.json();
     const out = String(data?.responseData?.translatedText ?? "").trim();
     // 한도를 넘기면 200 응답 본문에 경고 문구가 번역문 자리에 들어온다.
@@ -92,6 +126,8 @@ const google: TranslationProvider = {
         }),
       }
     );
+    if (!response.ok)
+      throw new Error(httpReason("Google 번역", response.status));
     const data = await response.json();
     return (
       data?.data?.translations?.[0]?.translatedText ||
@@ -147,6 +183,10 @@ const geminiTranslate: TranslationProvider = {
         }),
       }
     );
+    // 대화와 같은 키를 쓰므로 월 한도에도 함께 반영한다.
+    // 예전에는 번역만 세지 않아서, 변환기를 아무리 써도 사용량이 0이었다.
+    translationLlmCalls += 1;
+    if (!response.ok) throw new Error(httpReason("Gemini", response.status));
     const data = await response.json();
     const out = String(
       data?.candidates?.[0]?.content?.parts?.[0]?.text ?? ""
@@ -220,15 +260,18 @@ export async function translateText(text: string, settings: Settings) {
 
   if (provider.id !== "mymemory") attempts.push({ engine: myMemory, key: "" });
 
-  for (const attempt of attempts) {
+  lastTranslationError = null;
+  for (const [i, attempt] of attempts.entries()) {
     try {
       const out = (
         await attempt.engine.translate(text, attempt.key, dialect)
       ).trim();
       // 내장 엔진과 같은 답이면 그 엔진이 사실상 실패한 것이다. 다음으로 넘긴다.
       if (out && out !== offline) return out;
-    } catch {
-      // 다음 엔진으로
+    } catch (error) {
+      // 사용자가 고른 엔진(첫 시도)의 실패만 화면에 알린다.
+      if (i === 0 && error instanceof Error)
+        lastTranslationError = error.message;
     }
   }
   return offline;

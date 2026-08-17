@@ -1,5 +1,11 @@
 import type { Level } from "@/types";
-import type { GrammarLesson, WordEntry } from "@/data/types";
+import type {
+  ConversationPack,
+  DictationSentence,
+  GrammarLesson,
+  PronunciationCourse,
+  WordEntry,
+} from "@/data/types";
 import { LEVEL_ORDER } from "@/lib/levelOrder";
 
 /**
@@ -104,16 +110,49 @@ export function prefetchRemainingLevels() {
   }
 }
 
+/**
+ * 레벨과 무관한 콘텐츠(회화팩·받아쓰기·발음)도 따로 떼어 둔다.
+ *
+ * 셋을 정적으로 export 하면 94KB 가 첫 화면 번들에 그대로 들어간다.
+ * 홈의 오늘의 루트가 곧바로 쓰긴 하지만, 별도 청크로 두면 앱 껍데기가 먼저
+ * 뜨고 이쪽은 병렬로 받는다. 로드 전에는 빈 배열을 돌려준다.
+ */
+let extraPacks: ConversationPack[] = [];
+let extraDictation: DictationSentence[] = [];
+let extraCourses: PronunciationCourse[] = [];
+let extrasPromise: Promise<void> | null = null;
+
+export function ensureExtras(): Promise<void> {
+  if (!extrasPromise) {
+    extrasPromise = Promise.all([
+      import("@/data/packs"),
+      import("@/data/dictation"),
+      import("@/data/pronunciation"),
+    ]).then(([p, d, c]) => {
+      extraPacks = p.PACKS;
+      extraDictation = d.DICTATION;
+      extraCourses = c.PRONUNCIATION_COURSES;
+      revision += 1;
+      listeners.forEach(fn => fn());
+    });
+  }
+  return extrasPromise;
+}
+
+export function packs() {
+  return extraPacks;
+}
+export function dictation() {
+  return extraDictation;
+}
+export function pronunciationCourses() {
+  return extraCourses;
+}
+
 /** 지금까지 불러온 단어 전체. 로드 전에는 빈 배열이다. */
 export function words() {
   return flatWords;
 }
 export function lessons() {
   return flatLessons;
-}
-export function wordById(id: string) {
-  return wordIndex.get(id);
-}
-export function lessonById(id: string) {
-  return flatLessons.find(l => l.id === id);
 }

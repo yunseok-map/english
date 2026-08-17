@@ -32,6 +32,7 @@ import {
 } from "@/lib/speech";
 import { requestNotificationPermission } from "@/lib/notifications";
 import { haptic } from "@/lib/haptics";
+import { daysTo } from "@/lib/engine";
 import type { Settings } from "@/types";
 
 function Row({
@@ -71,6 +72,9 @@ export function SettingsDialog({
 }) {
   const { app, update } = useApp();
   const fileRef = useRef<HTMLInputElement>(null);
+  const [backupKeys, setBackupKeys] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [resetArmed, setResetArmed] = useState(false);
 
   // 목소리 목록. 설치형 앱은 네이티브에서 받아 오므로 비동기다.
   // 웹은 기기가 준비되는 대로 채워지므로 voiceschanged 도 함께 듣는다.
@@ -100,6 +104,15 @@ export function SettingsDialog({
       settings: { ...state.settings, [key]: value },
     }));
 
+  const setProfile = <K extends "name" | "departureDate">(
+    key: K,
+    value: string
+  ) =>
+    update(state => ({
+      ...state,
+      profile: { ...state.profile, [key]: value },
+    }));
+
   // Gemini는 번역과 대화가 같은 키를 쓰므로, 번역 키를 비워 두면 대화 키를 재사용한다.
   const reusesLlmKey =
     app.settings.translationProvider === "gemini" &&
@@ -113,12 +126,41 @@ export function SettingsDialog({
       update(() => restored);
       toast.success("백업을 복원했어요.");
       onOpenChange(false);
-    } catch {
-      toast.error("백업 파일을 읽을 수 없어요.");
+    } catch (error) {
+      // 왜 실패했는지 알려 준다. 예전에는 파일이 아니든 버전이 안 맞든
+      // "읽을 수 없어요" 한 줄이라 뭘 고쳐야 할지 알 수 없었다.
+      toast.error(
+        error instanceof Error ? error.message : "백업 파일을 읽을 수 없어요."
+      );
     }
   };
 
+  const exportBackup = async () => {
+    setExporting(true);
+    try {
+      const how = await backupState(app, { includeKeys: backupKeys });
+      toast.success(
+        how === "shared"
+          ? "백업 파일을 만들었어요. 저장할 곳을 골라 주세요."
+          : "백업 파일을 내려받았어요."
+      );
+    } catch (error) {
+      // 공유 시트를 그냥 닫은 것도 여기로 온다. 실패로 몰아붙이지 않는다.
+      const message = error instanceof Error ? error.message : "";
+      if (/cancel/i.test(message)) return;
+      toast.error("백업을 내보내지 못했어요.");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  // 초기화는 되돌릴 수 없다. 한 번 더 눌러야 실행한다.
   const reset = () => {
+    if (!resetArmed) {
+      setResetArmed(true);
+      window.setTimeout(() => setResetArmed(false), 4000);
+      return;
+    }
     update(() => DEFAULT_STATE);
     toast.success("모든 학습 데이터를 초기화했어요.");
     onOpenChange(false);
@@ -135,6 +177,34 @@ export function SettingsDialog({
         </DialogHeader>
 
         <div className="divide-y">
+          {/*
+            이름·출국일은 첫 온보딩에서만 받고 그 뒤로는 손댈 수 없었다.
+            출국일이 밀리면 D-day 도, 오늘의 루트 주제 순서도, 알림 문구도
+            전부 어긋나는데 고칠 방법이 전체 초기화뿐이었다.
+          */}
+          <section className="pb-1">
+            <Row label="이름">
+              <Input
+                value={app.profile.name}
+                maxLength={12}
+                onChange={e => setProfile("name", e.target.value)}
+                onBlur={e => {
+                  if (!e.target.value.trim()) setProfile("name", "학습자");
+                }}
+              />
+            </Row>
+            <Row label="출국일" hint={`D-${daysTo(app.profile.departureDate)}`}>
+              <Input
+                type="date"
+                value={app.profile.departureDate}
+                onChange={e => {
+                  if (e.target.value)
+                    setProfile("departureDate", e.target.value);
+                }}
+              />
+            </Row>
+          </section>
+
           <section className="pb-1">
             <Row
               label="영어 표기·발음"
@@ -547,14 +617,29 @@ export function SettingsDialog({
               </>
             )}
             <p className="pb-2 text-[0.75rem] leading-relaxed text-muted-foreground">
-              API 키는 이 기기에만 저장돼요. 백업 파일에도 함께 담기니 공유에
-              주의하세요.
+              API 키는 이 기기에만 저장돼요. 백업 파일에는 기본으로 담지 않아요.
             </p>
           </section>
 
           <section className="space-y-2 pt-3">
+            <Row
+              label="백업에 API 키 포함"
+              hint="켜면 백업 파일에 키가 평문으로 들어가요. 파일을 남에게 보내지 마세요."
+            >
+              <div className="flex justify-end">
+                <Switch
+                  checked={backupKeys}
+                  onCheckedChange={setBackupKeys}
+                  aria-label="백업에 API 키 포함"
+                />
+              </div>
+            </Row>
             <div className="grid grid-cols-2 gap-2">
-              <Button variant="outline" onClick={() => backupState(app)}>
+              <Button
+                variant="outline"
+                disabled={exporting}
+                onClick={() => void exportBackup()}
+              >
                 <Download size={15} /> 내보내기
               </Button>
               <Button
@@ -580,8 +665,14 @@ export function SettingsDialog({
               className="w-full text-destructive"
               onClick={reset}
             >
-              <RotateCcw size={15} /> 모든 학습 데이터 초기화
+              <RotateCcw size={15} />{" "}
+              {resetArmed
+                ? "정말 지울게요 — 한 번 더 누르세요"
+                : "모든 학습 데이터 초기화"}
             </Button>
+            <p className="pt-1 text-center font-mono text-[0.6875rem] text-muted-foreground">
+              워홀 영어 훈련 v{__APP_VERSION__}
+            </p>
           </section>
         </div>
       </DialogContent>

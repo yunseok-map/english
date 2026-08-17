@@ -20,6 +20,26 @@ export const PLACEMENT_SECTIONS: PlacementSection[] = [
 export const PLACEMENT_PER_CELL = 4;
 export const PLACEMENT_SIZE = PLACEMENT_PER_CELL * 9;
 
+/** 시드 난수. 같은 시드를 주면 같은 순서가 나온다. */
+function makeRandom(seed: number) {
+  let state = Math.abs(Math.trunc(seed)) % 2147483647 || 1;
+  return () => (state = (state * 48271) % 2147483647) / 2147483647;
+}
+
+/**
+ * 시드 셔플.
+ *
+ * sort 콜백 안에서 난수를 뽑으면 같은 두 원소를 비교할 때마다 답이 달라진다.
+ * 정렬이 일관되지 않아 결과가 한쪽으로 쏠리고, 앞쪽 원소가 계속 앞쪽에 남는다.
+ * 원소마다 키를 한 번씩만 붙여 두고 그 키로 정렬한다.
+ */
+function seededShuffle<T>(list: T[], rand: () => number): T[] {
+  return list
+    .map(item => ({ item, key: rand() }))
+    .sort((a, b) => a.key - b.key)
+    .map(entry => entry.item);
+}
+
 /**
  * 응시 세트 추출.
  *
@@ -42,15 +62,8 @@ export function buildPlacementSet(
   seed: number,
   seen: string[] = []
 ): PlacementQuestion[] {
-  let state = Math.abs(Math.trunc(seed)) % 2147483647 || 1;
-  const rand = () => (state = (state * 48271) % 2147483647) / 2147483647;
-  // sort 콜백 안에서 난수를 뽑으면 비교가 일관되지 않아 결과가 한쪽으로 쏠린다.
-  // 원소마다 키를 한 번씩 붙여 두고 그 키로 정렬한다.
-  const shuffle = <T>(list: T[]) =>
-    list
-      .map(item => ({ item, key: rand() }))
-      .sort((a, b) => a.key - b.key)
-      .map(v => v.item);
+  const rand = makeRandom(seed);
+  const shuffle = <T>(list: T[]) => seededShuffle(list, rand);
 
   const recent = new Set(seen);
   /** 안 본 문항을 앞에, 최근에 본 문항을 뒤에. 각각은 섞는다. */
@@ -277,17 +290,19 @@ export function buildPromotionTest(
   if (pool.length < 8) return [];
 
   // 시드 기반 셔플: 같은 날 다시 들어와도 문항이 흔들리지 않는다.
-  let state = seed % 2147483647 || 1;
-  const rand = () => (state = (state * 48271) % 2147483647) / 2147483647;
-  const picked = [...pool].sort(() => rand() - 0.5).slice(0, 5);
+  const rand = makeRandom(seed);
+  const picked = seededShuffle(pool, rand).slice(0, 5);
 
   return picked.map(word => {
-    const distractors = pool
-      .filter(w => w.id !== word.id)
-      .sort(() => rand() - 0.5)
+    // 뜻이 정답과 같은 표제어는 오답 보기로 못 쓴다. 정답이 둘이 되어 버린다.
+    // (레벨 안에 뜻이 겹치는 항목이 실제로 있다.)
+    const distractors = seededShuffle(
+      pool.filter(w => w.id !== word.id && w.meaning !== word.meaning),
+      rand
+    )
       .slice(0, 3)
       .map(w => w.meaning);
-    const options = [...distractors, word.meaning].sort(() => rand() - 0.5);
+    const options = seededShuffle([...distractors, word.meaning], rand);
     return {
       wordId: word.id,
       prompt: word.word.us,
@@ -295,8 +310,4 @@ export function buildPromotionTest(
       answer: options.indexOf(word.meaning),
     };
   });
-}
-
-export function levelIndex(level: Level) {
-  return LEVEL_ORDER.indexOf(level);
 }

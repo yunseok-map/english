@@ -1,8 +1,9 @@
 import type { WordEntry } from "@/data/types";
 
 /**
- * 단어·문법은 레벨별로 쪼개 필요할 때 불러온다. `@/data/registry` 를 쓴다.
- * 여기서는 크기가 작거나 전 구간에서 항상 필요한 데이터만 정적으로 내보낸다.
+ * 콘텐츠는 전부 `@/data/registry` 를 통해 필요할 때 불러온다.
+ * 단어·문법은 레벨별로, 회화팩·받아쓰기·발음은 한 덩어리로 묶여 있다.
+ * 여기서 정적으로 내보내는 건 아주 작은 것(축약형)뿐이다.
  *
  * 레벨 테스트 문항(placement)은 온보딩·재테스트에서만 쓰므로 동적 로딩한다.
  */
@@ -15,16 +16,18 @@ export {
   dataRevision,
   words,
   lessons,
-  wordById,
-  lessonById,
+  ensureExtras,
+  packs,
+  dictation,
+  pronunciationCourses,
 } from "@/data/registry";
 
-export { PACKS } from "@/data/packs";
-export { DICTATION } from "@/data/dictation";
-export { PRONUNCIATION_COURSES } from "@/data/pronunciation";
 export { CONTRACTIONS } from "@/data/tone";
 
-/** 30문항 레벨 테스트. 온보딩에서만 필요해 초기 번들에서 뺀다. */
+/**
+ * 레벨 테스트 문항 풀(108문항). 한 회차에는 36문항만 뽑아 낸다.
+ * 온보딩·재테스트에서만 필요해 초기 번들에서 뺀다.
+ */
 export async function loadPlacement() {
   return (await import("@/data/placement")).PLACEMENT_QUESTIONS;
 }

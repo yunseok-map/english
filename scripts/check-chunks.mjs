@@ -18,7 +18,9 @@ import path from "node:path";
 const root = path.resolve(process.argv[2] ?? "dist/public");
 const assets = path.join(root, "assets");
 if (!fs.existsSync(assets)) {
-  console.error(`✗ ${path.relative(process.cwd(), assets)} 가 없습니다. 먼저 빌드하세요.`);
+  console.error(
+    `✗ ${path.relative(process.cwd(), assets)} 가 없습니다. 먼저 빌드하세요.`
+  );
   process.exit(1);
 }
 
@@ -74,7 +76,9 @@ if (missing.length) {
 
 if (cycles.length) {
   failed = true;
-  console.error("✗ 청크 간 순환 import 가 있습니다 (iOS 에서 흰 화면으로 죽습니다):");
+  console.error(
+    "✗ 청크 간 순환 import 가 있습니다 (iOS 에서 흰 화면으로 죽습니다):"
+  );
   for (const cycle of cycles) console.error(`   ${cycle.join(" -> ")}`);
   console.error("\n  vite.config.ts 의 manualChunks 를 의심하세요.");
 }

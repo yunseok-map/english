@@ -20,7 +20,11 @@ import {
   relevantWords,
   toTone,
 } from "@/lib/engine";
-import { translateText } from "@/lib/providers";
+import {
+  takeTranslationError,
+  takeTranslationLlmCalls,
+  translateText,
+} from "@/lib/providers";
 import { composeEnglish, TOPIC_LABEL, type PhraseHit } from "@/lib/phrasebook";
 import { dt } from "@/lib/dialect";
 import { canRecognizeSpeech, speak, startRecognition } from "@/lib/speech";
@@ -103,17 +107,30 @@ export function ConverterScreen({
     const cached = app.translationCache[input];
     const offline = await composeEnglish(input, dialect);
     const translated = cached || (await translateText(input, app.settings));
+    const failure = takeTranslationError();
+    const llmUsed = takeTranslationLlmCalls();
     if (
       !cached &&
       app.settings.translationProvider !== "fallback" &&
       translated === offline.text
     ) {
-      toast("연결이 불안정해 내장 표현 엔진으로 만들었어요.");
+      // 왜 내장 엔진으로 떨어졌는지 알려 준다. 예전에는 "연결이 불안정해"
+      // 한 줄이라, 키를 잘못 넣은 경우에도 원인을 알 수 없었다.
+      toast(failure ?? "연결이 불안정해 내장 표현 엔진으로 만들었어요.");
     }
     setRelated(offline.hits);
     update(state => ({
       ...state,
-      translationCache: { ...state.translationCache, [input]: translated },
+      stats: llmUsed
+        ? { ...state.stats, llmCalls: state.stats.llmCalls + llmUsed }
+        : state.stats,
+      // 최근 500개만 남긴다. 상한이 없으면 쓸수록 저장 상태와 백업이 계속 커진다.
+      translationCache: Object.fromEntries(
+        Object.entries({
+          ...state.translationCache,
+          [input]: translated,
+        }).slice(-500)
+      ),
     }));
     setResult(translated);
     setLoading(false);

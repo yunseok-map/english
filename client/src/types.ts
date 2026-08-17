@@ -176,7 +176,6 @@ export type SessionRecord = {
 
 export type Stats = {
   learnedWords: number;
-  minutes: number;
   streak: number;
   lastStudyDate: string;
   pronunciationScores: number[];
@@ -191,8 +190,14 @@ export type Stats = {
   sessions: SessionRecord[];
 };
 
-/** 세션 요약·이어하기에서 함께 쓰는 오답 한 줄. */
-export type MissRecord = { label: string; detail?: string };
+/**
+ * 세션 요약·이어하기에서 함께 쓰는 오답 한 줄.
+ *
+ * `id` 가 있어야 요약 화면의 "틀린 것만 다시 풀기"가 문제를 다시 찾는다.
+ * 예전에는 이어하기로 복원한 오답에서 id 가 빠져서, 앱을 껐다 켠 뒤에는
+ * 그 버튼이 "다시 풀 단어를 찾지 못했어요" 토스트만 띄우고 끝났다.
+ */
+export type MissRecord = { id?: string; label: string; detail?: string };
 
 /**
  * 하다 만 학습을 이어 가기 위한 지점. 한 칸만 유지한다.

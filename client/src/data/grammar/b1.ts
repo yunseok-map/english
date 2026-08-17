@@ -477,4 +477,429 @@ export const GRAMMAR_B1: GrammarLesson[] = [
       },
     ],
   },
+  {
+    id: "b1-g07",
+    level: "B1",
+    title: "화법 — 들은 말 전하기",
+    koreanGap:
+      "한국어는 '~라고 했어요'만 붙이면 원래 말투가 그대로 살아요. 영어는 전하는 순간 시제를 한 칸 뒤로 밀고, 인칭과 시간 표현까지 바꿔야 해요. 매니저 말을 동료에게 옮기는 상황이 매일 생기는데 여기서 가장 많이 막혀요.",
+    explanation: [
+      "직접화법을 간접화법으로 바꿀 때는 시제를 한 칸 뒤로 밉니다. is → was, work → worked, will → would, can → could 예요. 'He said, \"I am busy.\"' 는 'He said he was busy.' 가 돼요.",
+      "인칭과 시간·장소 표현도 말하는 사람 기준으로 바뀝니다. I → he/she, tomorrow → the next day, here → there, this → that 이에요. 'She said, \"I\\'ll come here tomorrow.\"' 는 'She said she would come there the next day.' 가 되죠.",
+      "의문문을 전할 때는 어순이 평서문으로 돌아갑니다. 조동사 do/does/did 는 사라지고 주어가 동사 앞으로 와요. 'Where do you live?' → 'She asked me where I lived.' 예요. 'where did I live' 처럼 의문문 어순을 남기는 게 가장 흔한 실수예요. 의문사가 없으면 if 나 whether 로 잇습니다.",
+      "명령·부탁은 to부정사로 바꿉니다. 'Come early.' → 'He told me to come early.', 부정은 to 앞에 not 을 붙여 'He told me not to be late.' 예요. say 는 뒤에 사람이 바로 오지 않고(say to me), tell 은 사람이 바로 온다(tell me)는 차이도 함께 기억하세요.",
+    ],
+    examples: [
+      {
+        en: { us: "The manager said the roster would be up on Friday." },
+        ko: "매니저가 근무표는 금요일에 올라온다고 했어요.",
+      },
+      {
+        en: { us: "She asked me how long I had been in Melbourne." },
+        ko: "그녀가 제게 멜버른에 온 지 얼마나 됐냐고 물었어요.",
+      },
+      {
+        en: { us: "He told me not to park in the loading zone." },
+        ko: "그가 저에게 하역 구역에 주차하지 말라고 했어요.",
+      },
+      {
+        en: { us: "They asked if I could start the following Monday." },
+        ko: "그쪽에서 다음 주 월요일부터 시작할 수 있느냐고 물었어요.",
+      },
+    ],
+    quiz: [
+      {
+        q: '직접화법을 간접화법으로 — He said, "I am busy." → He said he ___ busy.',
+        options: ["is", "was", "were", "be"],
+        answer: 1,
+        explain: "전하는 순간 시제를 한 칸 뒤로 밀어요. am → was 가 됩니다.",
+      },
+      {
+        q: '직접화법을 간접화법으로 — "Where do you live?" → She asked me where I ___.',
+        options: ["do live", "live", "lived", "did live"],
+        answer: 2,
+        explain:
+          "간접의문문은 평서문 어순이라 do/did 가 사라지고, 시제만 한 칸 뒤로 밀어 lived 가 돼요.",
+      },
+      {
+        q: '직접화법을 간접화법으로 — "Don\'t be late." → The manager told us ___ late.',
+        options: ["don't be", "not to be", "to not being", "not being"],
+        answer: 1,
+        explain: "부정 명령은 to부정사 앞에 not 을 붙여 not to be 로 옮겨요.",
+      },
+      {
+        q: '직접화법을 간접화법으로 — "I\'ll call you tomorrow." → He said he ___ me the next day.',
+        options: ["will call", "would call", "called", "would called"],
+        answer: 1,
+        explain:
+          "will 은 would 로 밀리고, would 뒤에는 동사원형이 옵니다. tomorrow 도 the next day 로 바뀌었어요.",
+      },
+      {
+        q: "다음 중 올바른 문장은?",
+        options: [
+          "She asked me what time was it.",
+          "She asked me what time it was.",
+          "She asked me what time did it be.",
+          "She asked me what time is it.",
+        ],
+        answer: 1,
+        explain:
+          "간접의문문은 '의문사 + 주어 + 동사' 순서예요. what time it was 가 맞습니다.",
+      },
+    ],
+  },
+  {
+    id: "b1-g08",
+    level: "B1",
+    title: "used to · be used to · get used to",
+    koreanGap:
+      "셋 다 '익숙'이나 '예전'으로 번역돼서 통째로 헷갈려요. 뒤에 동사원형이 오느냐 -ing 가 오느냐가 갈림길인데, 한국어에는 그 구분이 없어서 감으로 고르게 됩니다.",
+    explanation: [
+      "used to + 동사원형은 '예전에는 ~했다(지금은 아니다)' 예요. 지금과 다르다는 뜻을 반드시 품습니다. 'I used to work night shifts.' 는 지금은 야간 근무를 안 한다는 말이에요.",
+      "be used to + 명사/동명사는 '~에 익숙하다' 는 상태예요. to 가 전치사라서 뒤에 동사가 오면 -ing 를 붙여야 해요. 'I'm used to driving on the left.' 가 맞고 'used to drive on the left' 는 뜻이 완전히 달라집니다.",
+      "get used to + 명사/동명사는 '익숙해지다' 는 변화예요. 'It took me a month to get used to the accent.' 처럼 적응해 가는 과정을 말할 때 씁니다. be 가 상태, get 이 과정이라고 묶어 두면 안 헷갈려요.",
+      "used to 의 의문·부정에서는 did 가 나오면서 use to 로 돌아갑니다. 'Did you use to work in a cafe?', 'I didn't use to like Vegemite.' 처럼요. did 가 이미 과거를 나타내니 used 를 또 쓰지 않는 거예요.",
+    ],
+    examples: [
+      {
+        en: { us: "I used to work night shifts, but now I only do days." },
+        ko: "예전에는 야간 근무를 했는데 지금은 주간만 해요.",
+      },
+      {
+        en: { us: "I'm still not used to driving on the left." },
+        ko: "아직 좌측 통행 운전이 익숙하지 않아요.",
+      },
+      {
+        en: { us: "It took me a month to get used to the Aussie accent." },
+        ko: "호주 억양에 익숙해지는 데 한 달 걸렸어요.",
+      },
+      {
+        en: { us: "Did you use to live in a share house back home?" },
+        ko: "한국에서도 셰어하우스에 살았었어요?",
+      },
+    ],
+    quiz: [
+      {
+        q: "빈칸에 알맞은 것은? — I ___ work night shifts, but now I only do days.",
+        options: ["used to", "am used to", "use to", "was used to"],
+        answer: 0,
+        explain: "지금은 안 하는 과거의 습관이므로 used to + 동사원형이에요.",
+      },
+      {
+        q: "빈칸에 알맞은 것은? — I'm still not used to ___ on the left.",
+        options: ["drive", "driving", "drove", "to drive"],
+        answer: 1,
+        explain:
+          "be used to 의 to 는 전치사라서 뒤에 동명사 driving 이 옵니다.",
+      },
+      {
+        q: "빈칸에 알맞은 것은? — It took a month to ___ used to the accent.",
+        options: ["get", "make", "take", "do"],
+        answer: 0,
+        explain:
+          "익숙해지는 '과정'은 get used to 예요. be used to 는 이미 익숙한 상태입니다.",
+      },
+      {
+        q: "'예전에는 여기 살았다(지금은 아니다)'에 해당하는 문장은?",
+        options: [
+          "I am used to living here.",
+          "I used to live here.",
+          "I get used to live here.",
+          "I was using to live here.",
+        ],
+        answer: 1,
+        explain:
+          "used to + 동사원형이 '예전에는 ~했다' 예요. I am used to living here 는 '여기 사는 게 익숙하다'는 현재 상태입니다.",
+      },
+      {
+        q: "빈칸에 알맞은 것은? — Did you ___ to work in a cafe back home?",
+        options: ["used", "use", "using", "be used"],
+        answer: 1,
+        explain: "did 가 이미 과거를 나타내므로 뒤에는 원형 use to 가 옵니다.",
+      },
+    ],
+  },
+  {
+    id: "b1-g09",
+    level: "B1",
+    title: "사역 — 남에게 시켜서 한 일",
+    koreanGap:
+      "한국어는 '머리를 잘랐다'라고 하면 미용실에서 자른 것도 포함돼요. 영어에서 'I cut my hair.' 는 내가 직접 가위를 든 겁니다. 남이 해 준 일은 have/get + 목적어 + 과거분사로 따로 표시해야 해요.",
+    explanation: [
+      "have + 목적어 + 과거분사는 '~을 (남을 시켜) 되게 하다' 예요. 'I had my hair cut.' 은 미용실에서 잘랐다는 뜻이고, 'I had my passport renewed.' 는 대사관에서 갱신했다는 뜻이에요.",
+      "get + 목적어 + 과거분사도 같은 뜻인데 더 구어적이고, 의도치 않게 당한 일에도 씁니다. 'I got my resume checked.' 는 검토를 받았다는 뜻이고, 'My phone got cracked on the tram.' 처럼 사고에도 써요.",
+      "사람에게 직접 시킬 때는 과거분사가 아니라 동사원형이 옵니다. 'The manager had me finish the closing checklist.' 처럼요. have + 사람 + 동사원형, have + 사물 + 과거분사로 나눠 기억하세요.",
+      "get 을 사람에게 쓸 때만 to 가 붙습니다. 'I got my roommate to sign the form.' 처럼요. have 는 to 없이(have him sign), get 은 to 를 넣어(get him to sign) — 이 하나만 다릅니다.",
+    ],
+    examples: [
+      {
+        en: { us: "I need to have my resume checked before I apply." },
+        ko: "지원하기 전에 이력서를 검토받아야 해요.",
+      },
+      {
+        en: { us: "I had my passport renewed at the consulate last week." },
+        ko: "지난주에 영사관에서 여권을 갱신했어요.",
+      },
+      {
+        en: { us: "My phone screen got cracked on the tram." },
+        ko: "트램에서 휴대폰 액정이 깨졌어요.",
+      },
+      {
+        en: { us: "I got my roommate to sign the inspection form." },
+        ko: "룸메이트한테 점검 서류에 서명을 받았어요.",
+      },
+    ],
+    quiz: [
+      {
+        q: "빈칸에 알맞은 것은? — I need to ___ my resume checked before I apply.",
+        options: ["have", "having", "been", "be having"],
+        answer: 0,
+        explain:
+          "to 뒤에는 동사원형이 오고, have + 목적어 + 과거분사로 '검토받다'가 됩니다.",
+      },
+      {
+        q: "빈칸에 알맞은 것은? — I had my passport ___ at the consulate.",
+        options: ["renew", "renewed", "renewing", "to renew"],
+        answer: 1,
+        explain:
+          "여권은 남이 갱신해 주는 대상이므로 과거분사 renewed 를 씁니다.",
+      },
+      {
+        q: "'미용실에서 머리를 잘랐다'에 해당하는 문장은?",
+        options: [
+          "I cut my hair.",
+          "I had my hair cut.",
+          "I have cut my hair.",
+          "I had cut my hair.",
+        ],
+        answer: 1,
+        explain:
+          "I cut my hair 는 내가 직접 잘랐다는 뜻이에요. 남이 해 준 일은 had my hair cut 입니다.",
+      },
+      {
+        q: "빈칸에 알맞은 것은? — My phone screen got ___ on the tram.",
+        options: ["crack", "cracked", "cracking", "to crack"],
+        answer: 1,
+        explain: "액정은 깨짐을 당한 쪽이므로 과거분사 cracked 를 씁니다.",
+      },
+      {
+        q: "빈칸에 알맞은 것은? — The manager had me ___ the closing checklist.",
+        options: ["to finish", "finish", "finished", "finishing"],
+        answer: 1,
+        explain:
+          "have 뒤에 사람이 오면 동사원형을 씁니다. get 이었다면 got me to finish 가 돼요.",
+      },
+    ],
+  },
+  {
+    id: "b1-g10",
+    level: "B1",
+    title: "조동사로 추측하기",
+    koreanGap:
+      "한국어는 '~인 것 같다' 하나로 확신의 정도를 다 덮어요. 영어는 must(거의 확실) · might(반반) · can't(그럴 리 없다)로 세기를 갈라 쓰고, 이걸 틀리면 확신이 없는데 단정하는 사람처럼 들립니다.",
+    explanation: [
+      "must be 는 '틀림없이 ~일 것이다' 예요. 근거가 있어서 거의 확신할 때 씁니다. 'The lights are on, so someone must be inside.' 처럼요. '~해야 한다'는 의무의 must 와 형태가 같지만 문맥으로 갈립니다.",
+      "can't be 는 must be 의 반대예요. '그럴 리 없다' 는 강한 부정 추측입니다. mustn't 는 '하면 안 된다'는 금지라서 추측에는 쓰지 않아요. 'She can't be at work — I just saw her at the beach.' 가 맞습니다.",
+      "might / may / could be 는 '~일 수도 있다' 로 확신이 낮아요. 'He might be stuck in traffic.' 처럼 가능성만 열어 둘 때 씁니다. 세 개의 차이는 크지 않으니 might 하나만 확실히 써도 충분해요.",
+      "과거를 추측할 때는 뒤에 have + 과거분사를 붙입니다. 'must have left'(떠난 게 틀림없다), 'might have missed'(놓쳤을 수도 있다), 'can't have seen'(봤을 리 없다) 처럼요. 조동사 자체는 과거형으로 바꾸지 않는다는 게 핵심이에요.",
+    ],
+    examples: [
+      {
+        en: { us: "The lights are on, so someone must be inside." },
+        ko: "불이 켜져 있으니 안에 누가 있는 게 틀림없어요.",
+      },
+      {
+        en: { us: "She can't be at work — I just saw her at the beach." },
+        ko: "그녀가 일하고 있을 리 없어요. 방금 해변에서 봤거든요.",
+      },
+      {
+        en: { us: "He might be stuck in traffic, so let's wait a bit." },
+        ko: "차가 막혀서 늦는 걸 수도 있으니 조금만 기다려요.",
+      },
+      {
+        en: { us: "There's no answer. They must have already left." },
+        ko: "응답이 없네요. 벌써 나간 게 틀림없어요.",
+      },
+    ],
+    quiz: [
+      {
+        q: "빈칸에 알맞은 것은? — The lights are on, so someone ___ be inside.",
+        options: ["must", "can't", "shouldn't", "mustn't"],
+        answer: 0,
+        explain:
+          "불이 켜져 있다는 근거로 거의 확신하는 추측이므로 must be 예요.",
+      },
+      {
+        q: "빈칸에 알맞은 것은? — She ___ be at work — I just saw her at the beach.",
+        options: ["must", "can't", "should", "has to"],
+        answer: 1,
+        explain:
+          "'그럴 리 없다'는 강한 부정 추측은 can't be 입니다. mustn't 는 금지라서 여기 쓰지 않아요.",
+      },
+      {
+        q: "빈칸에 알맞은 것은? — There's no answer. They ___ have already left.",
+        options: ["must", "can", "would", "shall"],
+        answer: 0,
+        explain: "과거에 대한 강한 추측은 must have + 과거분사예요.",
+      },
+      {
+        q: "'아마 그럴지도 모른다'처럼 확신이 낮은 추측은?",
+        options: ["must be", "might be", "can't be", "has to be"],
+        answer: 1,
+        explain:
+          "might be 가 가능성만 열어 두는 표현이에요. must be 와 has to be 는 확신이 높습니다.",
+      },
+      {
+        q: "다음 중 '그럴 리 없다'는 뜻인 문장은?",
+        options: [
+          "It must be true.",
+          "It can't be true.",
+          "It should be true.",
+          "It might be true.",
+        ],
+        answer: 1,
+        explain:
+          "can't be 가 '그럴 리 없다' 예요. must be 는 정반대로 '틀림없이 그렇다' 입니다.",
+      },
+    ],
+  },
+  {
+    id: "b1-g11",
+    level: "B1",
+    title: "양보 — although · despite · however",
+    koreanGap:
+      "셋 다 '~에도 불구하고, 하지만'으로 번역돼서 아무거나 골라 쓰기 쉬워요. 그런데 뒤에 문장이 오는지 명사가 오는지가 정해져 있고, however 는 아예 두 문장을 잇지 못합니다.",
+    explanation: [
+      "although 와 even though 뒤에는 주어와 동사가 있는 문장이 옵니다. 'Although the pay is low, the hours are flexible.' 처럼요. even though 가 although 보다 조금 더 강조하는 느낌이에요.",
+      "despite 와 in spite of 뒤에는 명사나 동명사가 옵니다. 'Despite the rain, we finished the shift.' 가 맞고 'Despite it was raining' 은 틀려요. 문장을 넣고 싶으면 despite the fact that 으로 늘려야 합니다.",
+      "despite 에는 of 를 붙이지 않고, in spite 에는 반드시 of 를 붙입니다. despite of 와 in spite 는 둘 다 틀린 형태예요. 이 둘만 뒤집어 외우지 않으면 됩니다.",
+      "however 는 접속사가 아니라 부사예요. 두 문장을 이을 수 없고, 마침표나 세미콜론으로 끊은 뒤 문장 앞에 쓰고 쉼표를 찍습니다. 'The room is small. However, it's close to the station.' 처럼요.",
+    ],
+    examples: [
+      {
+        en: { us: "Although the pay is low, the hours are flexible." },
+        ko: "시급은 낮지만 근무 시간이 유연해요.",
+      },
+      {
+        en: { us: "Despite the rain, we finished the shift outside." },
+        ko: "비가 왔는데도 바깥에서 근무를 끝냈어요.",
+      },
+      {
+        en: { us: "She got the job in spite of her limited experience." },
+        ko: "경력이 많지 않은데도 그녀는 그 일자리를 얻었어요.",
+      },
+      {
+        en: { us: "The room is small. However, it's close to the station." },
+        ko: "방은 좁아요. 하지만 역에서 가깝습니다.",
+      },
+    ],
+    quiz: [
+      {
+        q: "빈칸에 알맞은 것은? — ___ the pay is low, the hours are flexible.",
+        options: ["Despite", "Although", "In spite", "Despite of"],
+        answer: 1,
+        explain:
+          "뒤에 '주어 + 동사' 문장이 왔으므로 접속사 Although 를 씁니다.",
+      },
+      {
+        q: "빈칸에 알맞은 것은? — ___ the rain, we finished the shift outside.",
+        options: ["Although", "Even though", "Despite", "Though that"],
+        answer: 2,
+        explain: "뒤에 명사(the rain)가 왔으므로 전치사 Despite 를 씁니다.",
+      },
+      {
+        q: "빈칸에 알맞은 것은? — She got the job in spite ___ her limited experience.",
+        options: ["of", "that", "for", "to"],
+        answer: 0,
+        explain:
+          "in spite 는 항상 of 와 함께 씁니다. 반대로 despite 에는 of 를 붙이지 않아요.",
+      },
+      {
+        q: "다음 중 올바른 문장은?",
+        options: [
+          "Despite it was cold, we went out.",
+          "Although it was cold, we went out.",
+          "Despite of the cold, we went out.",
+          "Although of the cold, we went out.",
+        ],
+        answer: 1,
+        explain:
+          "문장을 이으려면 접속사 Although 가 필요해요. Despite 뒤에는 명사만 옵니다.",
+      },
+      {
+        q: "빈칸에 알맞은 것은? — The room is small. ___, it's close to the station.",
+        options: ["Although", "Despite", "However", "Even though"],
+        answer: 2,
+        explain:
+          "앞 문장이 마침표로 끝났으므로 부사 However 를 쓰고 쉼표를 찍습니다. 나머지는 한 문장 안에서 절을 잇는 말이에요.",
+      },
+    ],
+  },
+  {
+    id: "b1-g12",
+    level: "B1",
+    title: "관계부사와 전치사 + 관계대명사",
+    koreanGap:
+      "'내가 일하는 카페'처럼 한국어는 수식어가 앞에서 통째로 붙어요. 영어는 뒤에서 이어 붙이면서 장소·시간·이유에 맞는 연결어를 골라야 하고, 전치사가 남는지 아닌지까지 신경 써야 합니다.",
+    explanation: [
+      "장소는 where, 시간은 when, 이유는 why 로 잇습니다. 'This is the cafe where I work.', 'Do you remember the day when we arrived?', 'The reason why I moved is the rent.' 처럼요.",
+      "관계부사 자리에 which 나 that 을 그냥 넣으면 안 됩니다. 'the cafe which I work' 는 틀리고, which 를 쓰려면 전치사를 살려 'the cafe at which I work' 라고 해야 해요. 즉 where = at/in which 인 셈입니다.",
+      "전치사를 앞으로 뺄 수도 있고 뒤에 남길 수도 있어요. 'the agency through which I found the job'(격식) 과 'the agency I found the job through'(구어)는 같은 뜻이에요. 앞으로 뺄 때는 that 을 쓸 수 없고 which/whom 만 옵니다.",
+      "사람에게 전치사를 앞으로 뺄 때는 who 가 아니라 whom 이에요. 'the supervisor to whom I sent the email' 이 맞고 'to who' 는 틀립니다. 구어에서는 'the supervisor I sent the email to' 라고 하면 편해요.",
+    ],
+    examples: [
+      {
+        en: { us: "This is the cafe where I work on weekends." },
+        ko: "여기가 제가 주말에 일하는 카페예요.",
+      },
+      {
+        en: { us: "Do you remember the day when we arrived?" },
+        ko: "우리가 도착한 날 기억나요?",
+      },
+      {
+        en: { us: "That's the agency through which I found the job." },
+        ko: "저기가 제가 그 일자리를 찾은 에이전시예요.",
+      },
+      {
+        en: { us: "She's the supervisor to whom I sent the email." },
+        ko: "그분이 제가 이메일을 보낸 관리자예요.",
+      },
+    ],
+    quiz: [
+      {
+        q: "빈칸에 알맞은 것은? — This is the cafe ___ I work.",
+        options: ["which", "that", "where", "what"],
+        answer: 2,
+        explain:
+          "장소를 이을 때는 where 를 씁니다. which 를 쓰려면 at which 처럼 전치사가 필요해요.",
+      },
+      {
+        q: "빈칸에 알맞은 것은? — Do you remember the day ___ we arrived?",
+        options: ["where", "when", "which", "who"],
+        answer: 1,
+        explain:
+          "시간을 이을 때는 when 이에요. which 만 쓰면 on which 의 전치사가 빠져 틀립니다.",
+      },
+      {
+        q: "빈칸에 알맞은 것은? — The reason ___ I moved is the rent.",
+        options: ["why", "where", "when", "whose"],
+        answer: 0,
+        explain: "이유를 이을 때는 why 를 씁니다.",
+      },
+      {
+        q: "빈칸에 알맞은 것은? — That's the agency ___ which I found the job.",
+        options: ["through", "where", "when", "what"],
+        answer: 0,
+        explain:
+          "'~을 통해서'라는 뜻이므로 through which 예요. 전치사를 앞으로 뺄 때는 which 나 whom 만 올 수 있습니다.",
+      },
+      {
+        q: "빈칸에 알맞은 것은? — She's the supervisor ___ I sent the email.",
+        options: ["to who", "to whom", "whom to", "which to"],
+        answer: 1,
+        explain:
+          "사람 앞에 전치사를 뺄 때는 to whom 을 씁니다. to who 는 쓰지 않아요.",
+      },
+    ],
+  },
 ];

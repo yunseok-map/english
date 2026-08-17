@@ -42,9 +42,14 @@ if ("serviceWorker" in navigator && !isNative) {
   window.addEventListener("load", () => {
     if (import.meta.env.PROD) {
       // 상대 경로로 등록해야 하위 경로 배포에서도 스코프가 맞는다.
+      //
+      // new URL("sw.js", import.meta.url) 을 쓰면 안 된다. 번들된 뒤에는
+      // import.meta.url 이 /assets/index-<hash>.js 라서 /assets/sw.js 로
+      // 풀리는데, 실제 파일은 루트에 있다. 404 를 .catch 가 삼켜서 서비스
+      // 워커가 한 번도 등록되지 않은 채였다.
       // (HTTP LAN 접속처럼 보안 컨텍스트가 아니면 등록이 실패하지만, 앱 동작에는 지장이 없다.)
       navigator.serviceWorker
-        .register(new URL("sw.js", import.meta.url))
+        .register(`${import.meta.env.BASE_URL}sw.js`)
         .catch(() => undefined);
       return;
     }

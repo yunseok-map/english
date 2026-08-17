@@ -205,13 +205,6 @@ export function gradeFor(
   return 3;
 }
 
-export const RATING_LABEL: Record<Rating, string> = {
-  1: "다시",
-  2: "어려움",
-  3: "보통",
-  4: "쉬움",
-};
-
 /** 현재 카드 상태에서 각 등급을 골랐을 때의 다음 간격(사람이 읽는 문자열). */
 export function intervalPreview(
   card: SrsCard,

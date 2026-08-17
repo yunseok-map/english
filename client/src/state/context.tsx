@@ -20,6 +20,7 @@ import { syncReminders } from "@/lib/notifications";
 import { hideSplash, syncStatusBar } from "@/lib/native";
 import {
   allLevelsLoaded,
+  ensureExtras,
   ensureLevels,
   onDataChange,
   prefetchRemainingLevels,
@@ -57,7 +58,12 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       // 데이터 청크 로드가 실패해도(네트워크·캐시 문제) 화면은 띄운다.
       // 여기서 막히면 사용자는 원인을 알 수 없는 흰 화면만 보게 된다.
       try {
-        await ensureLevels([state.profile.level]);
+        // 내 레벨 청크와 공통 콘텐츠(회화팩·받아쓰기·발음)를 나란히 받는다.
+        // 홈의 오늘의 루트가 둘 다 필요하므로 여기서 함께 기다린다.
+        await Promise.all([
+          ensureLevels([state.profile.level]),
+          ensureExtras(),
+        ]);
       } catch (error) {
         console.error("학습 데이터 로드 실패", error);
       }

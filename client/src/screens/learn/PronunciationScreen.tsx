@@ -1,14 +1,15 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronRight, Mic, Square, Volume2 } from "lucide-react";
 import { toast } from "sonner";
 import { Panel, Eyebrow, Empty } from "@/components/Panel";
 import { useApp } from "@/state/context";
-import { PRONUNCIATION_COURSES } from "@/data";
+import { dataRevision, pronunciationCourses } from "@/data";
 import type { PronunciationCourse } from "@/data/types";
 import { dt, asrLocale } from "@/lib/dialect";
 import { recordSession, recordStudy } from "@/lib/engine";
 import { scorePronunciation } from "@/lib/phonetics";
 import { haptic } from "@/lib/haptics";
+import { LEVEL_ORDER } from "@/lib/level";
 import {
   canRecognizeSpeech,
   speak,
@@ -208,16 +209,28 @@ function CourseDetail({
 }
 
 export function PronunciationScreen() {
+  const { app } = useApp();
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const selected = selectedId
-    ? PRONUNCIATION_COURSES.find(c => c.id === selectedId)
-    : null;
+
+  // 내 레벨을 앞으로 당긴다. 발음 탭만 레벨을 전혀 안 봐서, B1 사용자도
+  // R/L 부터 순서대로 마주쳤다. 다른 학습 탭과 같은 규칙으로 맞춘다.
+  const all = pronunciationCourses();
+  const courses = useMemo(() => {
+    const mine = LEVEL_ORDER.indexOf(app.profile.level);
+    return [...all].sort(
+      (a, b) =>
+        Math.abs(LEVEL_ORDER.indexOf(a.level) - mine) -
+        Math.abs(LEVEL_ORDER.indexOf(b.level) - mine)
+    );
+  }, [app.profile.level, dataRevision()]);
+
+  const selected = selectedId ? all.find(c => c.id === selectedId) : null;
   if (selected)
     return (
       <CourseDetail course={selected} onBack={() => setSelectedId(null)} />
     );
 
-  if (PRONUNCIATION_COURSES.length === 0)
+  if (all.length === 0)
     return (
       <Empty title="코스 준비 중" text="발음 코스 콘텐츠를 준비하고 있어요." />
     );
@@ -228,7 +241,7 @@ export function PronunciationScreen() {
         한국인이 어려워하는 소리 8가지
       </Eyebrow>
       <div className="overflow-hidden rounded-2xl border bg-card">
-        {PRONUNCIATION_COURSES.map((course, i) => (
+        {courses.map((course, i) => (
           <button
             key={course.id}
             onClick={() => setSelectedId(course.id)}
@@ -238,8 +251,18 @@ export function PronunciationScreen() {
               {course.pairs[0]?.[0]?.[0]?.toUpperCase() ?? "•"}
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-[0.9375rem] font-semibold">
-                {course.title}
+              <span className="flex items-center gap-1.5">
+                <span className="truncate text-[0.9375rem] font-semibold">
+                  {course.title}
+                </span>
+                <span className="shrink-0 font-mono text-[0.6875rem] font-bold text-muted-foreground">
+                  {course.level}
+                </span>
+                {course.level === app.profile.level && (
+                  <span className="shrink-0 rounded-full bg-primary/12 px-1.5 py-0.5 text-[0.6875rem] font-semibold text-primary">
+                    추천
+                  </span>
+                )}
               </span>
               <span className="block truncate font-mono text-[0.8125rem] text-muted-foreground">
                 {course.pairs

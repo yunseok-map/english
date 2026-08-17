@@ -3,9 +3,21 @@ import react from "@vitejs/plugin-react";
 import path from "node:path";
 import { defineConfig } from "vite";
 
+/**
+ * 화면에 띄울 앱 버전.
+ *
+ * CI 는 태그 이름(v1.0.16 → 1.0.16)에서 버전을 만들어 IPA 에 박는데, 정작
+ * 화면 어디에도 버전이 없어서 "지금 깔린 게 몇 버전인지"를 확인할 방법이
+ * 없었다. 같은 값을 환경변수로 받아 설정 화면에 보여 준다.
+ */
+const APP_VERSION = process.env.APP_VERSION || "dev";
+
 export default defineConfig({
   // 상대 경로로 빌드해야 정적 호스팅의 하위 경로(예: GitHub Pages)에서도 그대로 열린다.
   base: "./",
+  define: {
+    __APP_VERSION__: JSON.stringify(APP_VERSION),
+  },
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {

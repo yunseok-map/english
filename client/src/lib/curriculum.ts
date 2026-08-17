@@ -1,4 +1,3 @@
-import type { AppState } from "@/types";
 import type { TopicId } from "@/data/types";
 import { daysTo } from "@/lib/engine";
 
@@ -84,30 +83,4 @@ export function allPhases(): Phase[] {
 export function phaseTopicRank(topic: TopicId, departureDate: string) {
   const index = currentPhase(departureDate).topics.indexOf(topic);
   return index === -1 ? 99 : index;
-}
-
-export type CurriculumView = {
-  phase: Phase;
-  days: number;
-  /** 이번 국면 주제 단어 중 이미 학습을 시작한 비율(0~1) */
-  coverage: number;
-  covered: number;
-  totalWords: number;
-};
-
-export function curriculumView(
-  state: AppState,
-  phaseWords: { id: string; topic: TopicId }[]
-): CurriculumView {
-  const phase = currentPhase(state.profile.departureDate);
-  const topics = new Set<TopicId>(phase.topics);
-  const inPhase = phaseWords.filter(w => topics.has(w.topic));
-  const covered = inPhase.filter(w => state.srs[`word-${w.id}`]).length;
-  return {
-    phase,
-    days: daysTo(state.profile.departureDate),
-    coverage: inPhase.length ? covered / inPhase.length : 0,
-    covered,
-    totalWords: inPhase.length,
-  };
 }

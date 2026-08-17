@@ -141,15 +141,6 @@ function matchIn(
   return hits.sort((a, b) => b.score - a.score).slice(0, limit);
 }
 
-/** 절 하나를 표현 사전에 물어본다. */
-export async function matchPhrases(
-  clause: string,
-  dialect: Dialect = "us",
-  limit = 3
-): Promise<PhraseHit[]> {
-  return matchIn(await loadPhrasebook(), clause, dialect, limit);
-}
-
 /** "{n}" 자리에 문장 안의 숫자를 넣는다. 숫자가 없으면 two 를 기본으로. */
 function fillSlots(text: string, clause: string) {
   if (!text.includes("{n}")) return text;

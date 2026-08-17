@@ -3,6 +3,7 @@ import type { PronunciationCourse } from "@/data/types";
 export const PRONUNCIATION_COURSES: PronunciationCourse[] = [
   {
     id: "pr-rl",
+    level: "A1",
     title: "R과 L",
     tip: "R은 혀끝이 입천장 어디에도 닿지 않게 뒤로 말아 올리고, L은 혀끝을 윗니 뒤 잇몸에 확실히 붙였다 떼세요. 한국어 'ㄹ'은 둘의 중간이라 그대로 쓰면 둘 다 어색하게 들립니다. R 앞에서 입술을 살짝 '우' 모양으로 둥글게 만들면 훨씬 자연스러워요.",
     pairs: [
@@ -27,6 +28,7 @@ export const PRONUNCIATION_COURSES: PronunciationCourse[] = [
   },
   {
     id: "pr-pf",
+    level: "A1",
     title: "P와 F",
     tip: "P는 두 입술을 붙였다가 한 번에 터뜨리는 소리이고, F는 윗니를 아랫입술에 살짝 얹고 바람을 계속 내보내는 소리예요. 한국어에는 F가 없어서 '프'로 대체하기 쉬운데, 그러면 fan이 pan으로 들립니다. F를 낼 때는 거울로 윗니가 아랫입술에 닿아 있는지 확인해 보세요.",
     pairs: [
@@ -54,6 +56,7 @@ export const PRONUNCIATION_COURSES: PronunciationCourse[] = [
   },
   {
     id: "pr-bv",
+    level: "A1",
     title: "B와 V",
     tip: "B는 두 입술을 붙였다 떼며 내는 소리이고, V는 F와 같은 자세로 윗니를 아랫입술에 대고 목을 울려 내는 유성음입니다. '브'라고 하면 무조건 B로 들리니, V에서는 두 입술이 절대 서로 닿지 않게 하세요. 목에 손을 대고 V에서 진동이 느껴지는지 확인하면 좋아요.",
     pairs: [
@@ -78,6 +81,7 @@ export const PRONUNCIATION_COURSES: PronunciationCourse[] = [
   },
   {
     id: "pr-th-s",
+    level: "A2",
     title: "TH(θ)와 S",
     tip: "θ는 혀끝을 윗니와 아랫니 사이로 살짝 내밀고 바람을 내보내는 무성음이에요. 'ㅆ'처럼 혀를 입안에 둔 채 발음하면 think가 sink로 들립니다. 처음에는 과장해서 혀끝이 이 사이로 살짝 보일 정도로 연습해 보세요.",
     pairs: [
@@ -102,6 +106,7 @@ export const PRONUNCIATION_COURSES: PronunciationCourse[] = [
   },
   {
     id: "pr-th-d",
+    level: "B1",
     title: "TH(ð)와 D",
     tip: "ð는 θ와 같은 혀 위치, 즉 혀끝을 이 사이에 두고 목을 울려 내는 유성음입니다. 한국어 'ㄷ'처럼 혀를 잇몸에 대면 they가 day로 들려요. 혀끝을 이로 살짝 물듯이 대고 진동을 느끼면서 천천히 연습하세요.",
     pairs: [
@@ -126,6 +131,7 @@ export const PRONUNCIATION_COURSES: PronunciationCourse[] = [
   },
   {
     id: "pr-ii",
+    level: "A2",
     title: "짧은 i와 긴 ee",
     tip: "짧은 i(/ɪ/)는 입에 힘을 빼고 '이'와 '에' 사이 소리를 짧게 툭 내고, 긴 ee(/iː/)는 입꼬리를 양옆으로 당기며 길게 끌어 주세요. 한국어 '이'로 둘 다 발음하면 sit이 seat처럼 들릴 수 있습니다. 길이만이 아니라 입 근육의 긴장도가 다르다는 점을 기억하세요.",
     pairs: [
@@ -150,6 +156,7 @@ export const PRONUNCIATION_COURSES: PronunciationCourse[] = [
   },
   {
     id: "pr-uu",
+    level: "A2",
     title: "짧은 u와 긴 oo",
     tip: "짧은 u(/ʊ/)는 입술에 힘을 빼고 '으'와 '우' 사이 소리를 짧게 끊어 내고, 긴 oo(/uː/)는 입술을 앞으로 쭉 내밀어 길게 내는 소리예요. 한국어 '우'는 긴 oo에 가까워서 full과 fool이 똑같이 들리기 쉽습니다. /ʊ/는 턱을 거의 움직이지 않고 툭 던지듯 짧게 연습해 보세요.",
     pairs: [
@@ -177,6 +184,7 @@ export const PRONUNCIATION_COURSES: PronunciationCourse[] = [
   },
   {
     id: "pr-zj",
+    level: "B1",
     title: "Z와 J(dʒ)",
     tip: "Z는 혀끝을 윗잇몸 가까이에 둔 채 '즈-' 하고 계속 울릴 수 있는 마찰음이고, J(dʒ)는 혀를 입천장에 붙였다 떼면서 한 번에 터뜨리는 소리예요. 한국어 'ㅈ'은 J에 가까워서 zip이 jip처럼 들리기 쉽습니다. 벌이 윙윙거리듯 소리를 길게 끌 수 있으면 Z, 끌 수 없으면 J라고 확인해 보세요.",
     pairs: [

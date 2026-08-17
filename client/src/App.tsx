@@ -5,8 +5,9 @@ import { AppHeader } from "@/components/AppHeader";
 import { BottomNav, type Screen } from "@/components/BottomNav";
 import { InstallHint } from "@/components/InstallHint";
 import { Transition } from "@/components/Transition";
+import { stopSpeaking } from "@/lib/speech";
 import { HomeScreen } from "@/screens/HomeScreen";
-import type { LearnSection } from "@/screens/learn/LearnScreen";
+import type { LearnIntent, LearnSection } from "@/screens/learn/LearnScreen";
 
 /**
  * 홈은 즉시 필요하니 정적으로 두고, 나머지 화면과 설정 다이얼로그는 지연 로딩한다.
@@ -53,6 +54,7 @@ export default function App() {
   const { app, ready, dark } = useApp();
   const [screen, setScreen] = useState<Screen>("home");
   const [learnSection, setLearnSection] = useState<LearnSection>("words");
+  const [learnIntent, setLearnIntent] = useState<LearnIntent | undefined>();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [retest, setRetest] = useState(false);
 
@@ -61,8 +63,17 @@ export default function App() {
     window.__bootOk = true;
   }, []);
 
-  const openLearn = (section: LearnSection) => {
+  // 화면을 옮기면 읽던 것을 멈춘다. 예전에는 단어를 읽는 도중에 탭을 바꿔도
+  // 소리가 끝까지 나서, 다음 화면과 겹쳐 들렸다.
+  useEffect(() => {
+    stopSpeaking();
+  }, [screen]);
+
+  // intent 는 홈의 오늘의 루트에서만 넘어온다. 탭을 직접 눌러 들어올 때는
+  // 비어 있어야 해서, 학습 화면이 한 번 쓰고 나면 바로 비운다.
+  const openLearn = (section: LearnSection, intent?: LearnIntent) => {
     setLearnSection(section);
+    setLearnIntent(intent);
     setScreen("learn");
   };
   const startRetest = () => {
@@ -121,7 +132,15 @@ export default function App() {
               </>
             )}
             {screen === "learn" && (
-              <LearnScreen section={learnSection} onSection={setLearnSection} />
+              <LearnScreen
+                section={learnSection}
+                onSection={next => {
+                  setLearnIntent(undefined);
+                  setLearnSection(next);
+                }}
+                intent={learnIntent}
+                onIntentDone={() => setLearnIntent(undefined)}
+              />
             )}
             {screen === "converter" && (
               <ConverterScreen openLearn={openLearn} />

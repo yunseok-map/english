@@ -43,7 +43,6 @@ export const DEFAULT_STATE: AppState = {
   chat: [],
   stats: {
     learnedWords: 0,
-    minutes: 0,
     streak: 0,
     lastStudyDate: "",
     pronunciationScores: [],
@@ -58,6 +57,13 @@ export const DEFAULT_STATE: AppState = {
   myEntries: [],
 };
 
+/**
+ * 이번 달("YYYY-MM"). 로컬 기준이다.
+ *
+ * toISOString() 은 UTC 라서 한국(UTC+9)에서는 매달 1일 오전 9시 전까지 지난달로
+ * 잡힌다. 사용 한도가 하루 늦게 풀리는 셈이라 로컬 달력을 그대로 쓴다.
+ */
 export function monthKey() {
-  return new Date().toISOString().slice(0, 7);
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 }

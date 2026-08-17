@@ -5,7 +5,7 @@ import type {
   GrammarLesson,
   WordEntry,
 } from "@/data/types";
-import { DICTATION, PACKS, lessons, words } from "@/data";
+import { dictation, lessons, packs, words } from "@/data";
 import { dueCards, todayKey } from "@/lib/engine";
 import { LEVEL_ORDER } from "@/lib/levelOrder";
 import { phaseTopicRank } from "@/lib/curriculum";
@@ -83,17 +83,20 @@ export function buildDailyRoute(state: AppState): DailyRoute {
       l => !state.completedLessons.includes(l.id)
     ) ?? null;
 
-  const levelPacks = PACKS.filter(p => p.level === level);
-  const packPool = levelPacks.length > 0 ? levelPacks : PACKS;
+  const allPacks = packs();
+  const levelPacks = allPacks.filter(p => p.level === level);
+  const packPool = levelPacks.length > 0 ? levelPacks : allPacks;
   const pack = packPool.length > 0 ? packPool[day % packPool.length] : null;
 
-  const levelDictation = DICTATION.filter(d => d.level === level);
-  const dictationPool = levelDictation.length > 0 ? levelDictation : DICTATION;
-  const dictation: DictationSentence[] = [];
+  const allDictation = dictation();
+  const levelDictation = allDictation.filter(d => d.level === level);
+  const dictationPool =
+    levelDictation.length > 0 ? levelDictation : allDictation;
+  const todayDictation: DictationSentence[] = [];
   if (dictationPool.length > 0) {
     const start = (day * 5) % dictationPool.length;
     for (let i = 0; i < Math.min(5, dictationPool.length); i += 1) {
-      dictation.push(dictationPool[(start + i) % dictationPool.length]);
+      todayDictation.push(dictationPool[(start + i) % dictationPool.length]);
     }
   }
 
@@ -114,7 +117,7 @@ export function buildDailyRoute(state: AppState): DailyRoute {
     dueCount: dueCards(state).length,
     nextLesson,
     pack,
-    dictation,
+    dictation: todayDictation,
     mistakes: dueMistakes(state),
     speaking,
   };
@@ -125,6 +128,7 @@ export type RouteTaskId =
   | "review"
   | "lesson"
   | "pack"
+  | "dictation"
   | "mistakes"
   | "speak";
 
